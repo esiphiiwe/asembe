@@ -18,13 +18,16 @@ function AuthGate() {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const onSignupScreen = segments[1] === 'signup';
 
     if (!session && !inAuthGroup) {
       router.replace('/(auth)/landing');
-    } else if (session && inAuthGroup) {
+    } else if (session && !isOnboarded && !onSignupScreen) {
+      router.replace('/(auth)/signup');
+    } else if (session && isOnboarded && inAuthGroup) {
       router.replace('/(tabs)');
     }
-  }, [session, isLoading, segments]);
+  }, [isLoading, isOnboarded, router, segments, session]);
 
   if (isLoading) {
     return (

@@ -1,65 +1,48 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Text, View, ScrollView, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { AsambeButton } from '@/components/ui/asambe-button';
+import { ScreenState } from '@/components/ui/screen-state';
 import { useAuth } from '@/lib/auth-context';
-import { getActivityById } from '@/services/activities';
+import { getErrorMessage, isConfigError, isDuplicateError } from '@/lib/errors';
+import { getActivityById, type ActivityDetailView } from '@/services/activities';
 import { createMatchRequest } from '@/services/matches';
-import { MOCK_ACTIVITIES, MOCK_USERS, formatActivityDate } from '@/lib/mock-data';
 
 export default function ActivityDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
 
-  const [activity, setActivity] = useState<any>(null);
-  const [poster, setPoster] = useState<any>(null);
+  const [activity, setActivity] = useState<ActivityDetailView | null>(null);
   const [loading, setLoading] = useState(true);
   const [requesting, setRequesting] = useState(false);
-  const [useMock, setUseMock] = useState(false);
+  const [error, setError] = useState<unknown>(null);
 
-  useEffect(() => {
-    loadActivity();
-  }, [id]);
+  const loadActivity = useCallback(async () => {
+    setError(null);
 
-  const loadActivity = async () => {
     try {
       const data = await getActivityById(id!);
-      setActivity({
-        ...data,
-        categoryIcon: data.categories?.icon ?? '✨',
-        categoryName: data.categories?.name ?? 'other',
-        companionCount: data.companion_count,
-        recurrenceRule: data.recurrence_rule,
-        dateTime: data.date_time ? new Date(data.date_time) : undefined,
-      });
-      setPoster({
-        id: data.profiles?.id,
-        name: data.profiles?.name ?? 'Unknown',
-        trustScore: data.profiles?.trust_score ?? 0,
-        verified: data.profiles?.verified ?? false,
-        bio: data.profiles?.bio,
-        profilePhoto: data.profiles?.profile_photo,
-      });
-      setUseMock(false);
-    } catch {
-      const mockActivity = MOCK_ACTIVITIES.find(a => a.id === id) ?? MOCK_ACTIVITIES[0];
-      const mockPoster = MOCK_USERS.find(u => u.id === mockActivity.userId) ?? MOCK_USERS[1];
-      setActivity(mockActivity);
-      setPoster(mockPoster);
-      setUseMock(true);
+      setActivity(data);
+    } catch (error) {
+      setActivity(null);
+      setError(error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    void loadActivity();
+  }, [loadActivity]);
 
   const handleRequestToJoin = async () => {
     if (!user) {
       Alert.alert('Not signed in', 'Please sign in to request to join.');
       return;
     }
-    if (useMock) {
-      Alert.alert('Requested!', 'Your request has been sent. (Demo mode)');
+    if (!activity) {
+      Alert.alert('Unavailable', 'This activity is not available right now.');
       return;
     }
 
@@ -67,18 +50,18 @@ export default function ActivityDetailScreen() {
     try {
       await createMatchRequest(id!, user.id);
       Alert.alert('Request sent!', 'The activity poster will review your request.');
-    } catch (err: any) {
-      if (err.message?.includes('duplicate')) {
+    } catch (error) {
+      if (isDuplicateError(error)) {
         Alert.alert('Already requested', 'You have already requested to join this activity.');
       } else {
-        Alert.alert('Error', err.message ?? 'Could not send request.');
+        Alert.alert('Error', getErrorMessage(error, 'Could not send request.'));
       }
     } finally {
       setRequesting(false);
     }
   };
 
-  if (loading || !activity || !poster) {
+  if (loading) {
     return (
       <View className="flex-1 bg-neutral-50 items-center justify-center">
         <ActivityIndicator size="large" color="#e8572a" />
@@ -86,12 +69,34 @@ export default function ActivityDetailScreen() {
     );
   }
 
-  const isOwnActivity = user?.id === (activity.user_id ?? activity.userId);
+  if (error || !activity) {
+    return (
+      <View className="flex-1 bg-neutral-50">
+        <ScreenState
+          icon={isConfigError(error) ? '🛠️' : '🗓️'}
+          title={isConfigError(error) ? 'Finish Supabase setup' : 'Activity unavailable'}
+          description={getErrorMessage(
+            error,
+            'We could not load this activity from live data right now.'
+          )}
+          actionLabel="Try again"
+          onAction={() => {
+            setLoading(true);
+            void loadActivity();
+          }}
+          fullScreen
+        />
+      </View>
+    );
+  }
+
+  const isOwnActivity = user?.id === activity.userId;
+  const poster = activity.poster;
+  const posterInitial = (poster.name || 'A').charAt(0);
 
   return (
     <View className="flex-1 bg-neutral-50">
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-        {/* Hero image area */}
         <View className="relative">
           <View className="w-full h-72 bg-neutral-200 items-center justify-center">
             <Text className="text-7xl">{activity.categoryIcon}</Text>
@@ -122,12 +127,12 @@ export default function ActivityDetailScreen() {
               <Text className="text-sm mr-1">{activity.categoryIcon}</Text>
               <Text className="text-sm font-medium text-primary-700 capitalize">{activity.categoryName}</Text>
             </View>
-            {activity.recurrenceRule && (
+            {activity.recurrenceRule ? (
               <View className="bg-neutral-100 rounded-full px-3 py-1 ml-2 flex-row items-center">
                 <IconSymbol name="clock" size={12} color="#78716c" />
                 <Text className="text-xs text-neutral-600 ml-1">Recurring</Text>
               </View>
-            )}
+            ) : null}
           </View>
 
           <Text className="font-serif text-2xl font-bold text-neutral-900 mb-3">
@@ -141,11 +146,7 @@ export default function ActivityDetailScreen() {
             </View>
             <View className="flex-row items-center">
               <IconSymbol name="calendar" size={14} color="#78716c" />
-              <Text className="text-sm text-neutral-600 ml-1">
-                {activity.dateTime
-                  ? formatActivityDate(activity.dateTime)
-                  : 'Every ' + (activity.recurrenceRule?.split(':')[1] ?? 'week')}
-              </Text>
+              <Text className="text-sm text-neutral-600 ml-1">{activity.scheduleLabel}</Text>
             </View>
           </View>
 
@@ -154,7 +155,7 @@ export default function ActivityDetailScreen() {
           <View className="flex-row items-center mb-5">
             <View className="w-14 h-14 bg-primary-200 rounded-full items-center justify-center">
               <Text className="text-lg font-bold text-primary-800">
-                {poster.name.charAt(0)}
+                {posterInitial}
               </Text>
             </View>
             <View className="ml-3 flex-1">
@@ -166,12 +167,12 @@ export default function ActivityDetailScreen() {
                 <Text className="text-sm text-neutral-600 ml-1">
                   {Number(poster.trustScore).toFixed(1)} trust score
                 </Text>
-                {poster.verified && (
+                {poster.verified ? (
                   <View className="flex-row items-center ml-2">
-                    <IconSymbol name="shield.checkmark" size={13} color="#16a34a" />
+                    <IconSymbol name="checkmark.circle.fill" size={13} color="#16a34a" />
                     <Text className="text-xs text-green-700 ml-0.5">Verified</Text>
                   </View>
-                )}
+                ) : null}
               </View>
             </View>
           </View>
@@ -203,8 +204,10 @@ export default function ActivityDetailScreen() {
           <View className="bg-white rounded-2xl border border-neutral-100 p-4">
             <Text className="text-sm font-semibold text-neutral-900 mb-3">Safety</Text>
             <View className="flex-row items-center mb-2.5">
-              <IconSymbol name="shield.checkmark" size={16} color="#16a34a" />
-              <Text className="text-sm text-neutral-600 ml-2">Photo verified profile</Text>
+              <IconSymbol name="checkmark.circle.fill" size={16} color="#16a34a" />
+              <Text className="text-sm text-neutral-600 ml-2">
+                {poster.verified ? 'Verified profile' : 'Profile verification pending'}
+              </Text>
             </View>
             <View className="flex-row items-center mb-2.5">
               <IconSymbol name="envelope.fill" size={16} color="#78716c" />
@@ -218,12 +221,12 @@ export default function ActivityDetailScreen() {
         </View>
       </ScrollView>
 
-      {!isOwnActivity && (
+      {!isOwnActivity ? (
         <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-neutral-100 px-6 py-4 pb-8 flex-row items-center">
           <View className="flex-1 mr-4">
             <View className="flex-row items-center">
               <View className="w-8 h-8 bg-primary-200 rounded-full items-center justify-center mr-2">
-                <Text className="text-xs font-bold text-primary-800">{poster.name.charAt(0)}</Text>
+                <Text className="text-xs font-bold text-primary-800">{posterInitial}</Text>
               </View>
               <View>
                 <Text className="text-sm font-medium text-neutral-900">{poster.name.split(' ')[0]}</Text>
@@ -241,7 +244,7 @@ export default function ActivityDetailScreen() {
             disabled={requesting}
           />
         </View>
-      )}
+      ) : null}
     </View>
   );
 }

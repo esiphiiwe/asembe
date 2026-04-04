@@ -4,7 +4,7 @@ import { IconSymbol } from './icon-symbol';
 interface StatBadgeProps {
   label: string;
   value: string | number;
-  icon?: 'star.fill' | 'calendar' | 'person.2.fill' | 'shield.checkmark';
+  icon?: 'star.fill' | 'calendar' | 'person.2.fill';
 }
 
 export function StatBadge({ label, value, icon }: StatBadgeProps) {

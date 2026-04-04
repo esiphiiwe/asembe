@@ -1,9 +1,11 @@
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { supabase, isMockMode } from './supabase';
+import { getSupabaseClient, isSupabaseConfigured } from './supabase';
 import type { Database } from '@/types/database';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
+type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
+type CreateProfileData = Omit<ProfileInsert, 'id' | 'email' | 'verified' | 'trust_score' | 'created_at'>;
 
 interface AuthState {
   session: Session | null;
@@ -14,10 +16,15 @@ interface AuthState {
 }
 
 interface AuthContextValue extends AuthState {
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (
+    email: string,
+    password: string
+  ) => Promise<{ user: User | null; session: Session | null; error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
-  createProfile: (data: Omit<Profile, 'id' | 'email' | 'verified' | 'trust_score' | 'created_at'>) => Promise<{ error: Error | null }>;
+  createProfile: (
+    data: CreateProfileData & { userId: string; email: string }
+  ) => Promise<{ error: Error | null }>;
   refreshProfile: () => Promise<void>;
 }
 
@@ -33,40 +40,40 @@ export function AuthProvider({ children }: PropsWithChildren) {
   });
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
+    const client = getSupabaseClient();
+    const { data, error } = await client
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
     return data;
   };
 
   useEffect(() => {
-    if (isMockMode) {
+    if (!isSupabaseConfigured) {
       setState(prev => ({ ...prev, isLoading: false }));
       return;
     }
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      let profile: Profile | null = null;
-      if (session?.user) {
-        profile = await fetchProfile(session.user.id);
-      }
-      setState({
-        session,
-        user: session?.user ?? null,
-        profile,
-        isLoading: false,
-        isOnboarded: !!profile,
-      });
-    });
+    const client = getSupabaseClient();
+    let isMounted = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+    const syncAuthState = async (session: Session | null) => {
+      try {
         let profile: Profile | null = null;
         if (session?.user) {
           profile = await fetchProfile(session.user.id);
         }
+
+        if (!isMounted) {
+          return;
+        }
+
         setState({
           session,
           user: session?.user ?? null,
@@ -75,23 +82,71 @@ export function AuthProvider({ children }: PropsWithChildren) {
           isOnboarded: !!profile,
         });
       }
+      catch (error) {
+        console.error('Failed to synchronize auth state', error);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setState({
+          session,
+          user: session?.user ?? null,
+          profile: null,
+          isLoading: false,
+          isOnboarded: false,
+        });
+      }
+    };
+
+    void client.auth.getSession().then(({ data: { session } }) => syncAuthState(session));
+
+    const { data: { subscription } } = client.auth.onAuthStateChange(
+      (_event, session) => {
+        void syncAuthState(session);
+      }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    return { error: error ? new Error(error.message) : null };
+    try {
+      const client = getSupabaseClient();
+      const { data, error } = await client.auth.signUp({ email, password });
+      return {
+        user: data.user ?? null,
+        session: data.session ?? null,
+        error: error ? new Error(error.message) : null,
+      };
+    } catch (error) {
+      return {
+        user: null,
+        session: null,
+        error: error instanceof Error ? error : new Error('Could not create account.'),
+      };
+    }
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error ? new Error(error.message) : null };
+    try {
+      const client = getSupabaseClient();
+      const { error } = await client.auth.signInWithPassword({ email, password });
+      return { error: error ? new Error(error.message) : null };
+    } catch (error) {
+      return { error: error instanceof Error ? error : new Error('Could not sign in.') };
+    }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    if (isSupabaseConfigured) {
+      const client = getSupabaseClient();
+      await client.auth.signOut();
+    }
+
     setState({
       session: null,
       user: null,
@@ -102,28 +157,41 @@ export function AuthProvider({ children }: PropsWithChildren) {
   };
 
   const createProfile = async (
-    data: Omit<Profile, 'id' | 'email' | 'verified' | 'trust_score' | 'created_at'>
+    data: CreateProfileData & { userId: string; email: string }
   ) => {
-    if (!state.user) return { error: new Error('Not authenticated') };
+    try {
+      const client = getSupabaseClient();
+      const { userId, email, ...profileData } = data;
+      const { error } = await client.from('profiles').insert({
+        id: userId,
+        email,
+        ...profileData,
+      });
 
-    const { error } = await supabase.from('profiles').insert({
-      id: state.user.id,
-      email: state.user.email!,
-      ...data,
-    });
+      if (!error) {
+        const profile = await fetchProfile(userId);
+        setState(prev => ({
+          ...prev,
+          profile,
+          isOnboarded: !!profile,
+        }));
+      }
 
-    if (!error) {
-      const profile = await fetchProfile(state.user.id);
-      setState(prev => ({ ...prev, profile, isOnboarded: true }));
+      return { error: error ? new Error(error.message) : null };
+    } catch (error) {
+      return { error: error instanceof Error ? error : new Error('Could not create profile.') };
     }
-
-    return { error: error ? new Error(error.message) : null };
   };
 
   const refreshProfile = async () => {
-    if (!state.user) return;
-    const profile = await fetchProfile(state.user.id);
-    setState(prev => ({ ...prev, profile, isOnboarded: !!profile }));
+    if (!state.user || !isSupabaseConfigured) return;
+
+    try {
+      const profile = await fetchProfile(state.user.id);
+      setState(prev => ({ ...prev, profile, isOnboarded: !!profile }));
+    } catch (error) {
+      console.error('Failed to refresh profile', error);
+    }
   };
 
   return (

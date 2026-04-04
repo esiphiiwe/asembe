@@ -6,12 +6,13 @@ import type { Database } from '@/types/database';
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
-export const isMockMode = !supabaseUrl || !supabaseAnonKey;
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+export const SUPABASE_CONFIG_MESSAGE =
+  'Supabase is not configured. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY.';
 
-if (isMockMode) {
+if (!isSupabaseConfigured) {
   console.warn(
-    'Supabase credentials missing — running in mock-data mode. ' +
-    'Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in .env to connect.',
+    `${SUPABASE_CONFIG_MESSAGE} Live data is unavailable until those values are set.`,
   );
 }
 
@@ -33,9 +34,27 @@ export const supabase = createClient<Database>(
   {
     auth: {
       storage: Platform.OS === 'web' ? undefined : SecureStoreAdapter,
-      autoRefreshToken: !isMockMode,
-      persistSession: !isMockMode,
+      autoRefreshToken: isSupabaseConfigured,
+      persistSession: isSupabaseConfigured,
       detectSessionInUrl: false,
     },
   },
 );
+
+export class SupabaseConfigError extends Error {
+  constructor(message = SUPABASE_CONFIG_MESSAGE) {
+    super(message);
+    this.name = 'SupabaseConfigError';
+  }
+}
+
+export function assertSupabaseConfigured() {
+  if (!isSupabaseConfigured) {
+    throw new SupabaseConfigError();
+  }
+}
+
+export function getSupabaseClient() {
+  assertSupabaseConfigured();
+  return supabase;
+}

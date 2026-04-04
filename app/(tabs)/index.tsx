@@ -1,38 +1,47 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Text, View, ScrollView, FlatList, Pressable, RefreshControl } from 'react-native';
+import { useState, useEffect, useCallback, useDeferredValue } from 'react';
+import { Text, View, ScrollView, FlatList, Pressable, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { SearchBar } from '@/components/ui/search-bar';
 import { CategoryChip } from '@/components/ui/category-chip';
 import { ActivityCard } from '@/components/ui/activity-card';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { ScreenState } from '@/components/ui/screen-state';
 import { CATEGORIES } from '@/lib/constants';
 import { useAuth } from '@/lib/auth-context';
-import { getOpenActivities, type ActivityWithPoster } from '@/services/activities';
-import { MOCK_ACTIVITIES, formatActivityDate } from '@/lib/mock-data';
+import { getErrorMessage, isConfigError } from '@/lib/errors';
+import { getOpenActivities, type ActivityFeedItem } from '@/services/activities';
 
 export default function HomeScreen() {
   const { profile } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const [activities, setActivities] = useState<ActivityWithPoster[]>([]);
-  const [useMock, setUseMock] = useState(false);
+  const [activities, setActivities] = useState<ActivityFeedItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>(null);
+  const deferredSearchText = useDeferredValue(searchText.trim());
 
   const loadActivities = useCallback(async () => {
+    setError(null);
+
     try {
       const data = await getOpenActivities({
         city: profile?.city,
         category: selectedCategory ?? undefined,
+        search: deferredSearchText || undefined,
       });
       setActivities(data);
-      setUseMock(false);
-    } catch {
-      setUseMock(true);
+    } catch (error) {
+      setActivities([]);
+      setError(error);
+    } finally {
+      setLoading(false);
     }
-  }, [profile?.city, selectedCategory]);
+  }, [deferredSearchText, profile?.city, selectedCategory]);
 
   useEffect(() => {
-    loadActivities();
+    void loadActivities();
   }, [loadActivities]);
 
   const onRefresh = async () => {
@@ -41,49 +50,47 @@ export default function HomeScreen() {
     setRefreshing(false);
   };
 
-  const displayActivities = useMock
-    ? (selectedCategory
-        ? MOCK_ACTIVITIES.filter(a => a.categoryName === selectedCategory)
-        : MOCK_ACTIVITIES
-      ).map(a => ({
-        ...a,
-        user_id: a.userId,
-        category_id: a.categoryId,
-        custom_category_label: null,
-        date_time: a.dateTime?.toISOString() ?? null,
-        recurrence_rule: a.recurrenceRule ?? null,
-        recurrence_end_date: null,
-        companion_count: a.companionCount,
-        poster_name: a.posterName,
-        poster_trust_score: a.posterTrustScore,
-        category_name: a.categoryName,
-        category_icon: a.categoryIcon,
-        created_at: a.createdAt.toISOString(),
-      } as unknown as ActivityWithPoster))
-    : activities;
+  const featuredActivities = activities.slice(0, 4);
+  const nearbyActivities = activities.length > 4 ? activities.slice(4) : activities;
 
-  const filtered = selectedCategory && !useMock
-    ? displayActivities.filter(a => a.category_name === selectedCategory)
-    : displayActivities;
+  if (loading) {
+    return (
+      <View className="flex-1 bg-neutral-50 items-center justify-center">
+        <ActivityIndicator size="large" color="#e8572a" />
+      </View>
+    );
+  }
 
-  const thisWeek = filtered.slice(0, 4);
-  const nearYou = filtered.slice(2);
-
-  const formatDate = (a: ActivityWithPoster) => {
-    if (!a.date_time) return 'Recurring';
-    return formatActivityDate(new Date(a.date_time));
-  };
+  if (error) {
+    return (
+      <SafeAreaView className="flex-1 bg-neutral-50" edges={['top']}>
+        <ScreenState
+          icon={isConfigError(error) ? '🛠️' : '⚠️'}
+          title={isConfigError(error) ? 'Finish Supabase setup' : 'Could not load activities'}
+          description={getErrorMessage(
+            error,
+            'We could not load live activities right now. Please try again.'
+          )}
+          actionLabel="Try again"
+          onAction={() => {
+            setLoading(true);
+            void loadActivities();
+          }}
+          fullScreen
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50" edges={['top']}>
-      {/* Header */}
       <View className="flex-row items-center justify-between px-6 pt-2 pb-3">
         <View>
           <Text className="font-serif text-3xl font-bold text-neutral-900">
             Asambe
           </Text>
           <Text className="text-sm text-neutral-400 mt-0.5">
-            {profile?.city ?? 'Cape Town'}
+            {profile?.city ?? 'Your city'}
           </Text>
         </View>
         <Pressable
@@ -100,12 +107,14 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e8572a" />
         }
       >
-        {/* Search bar */}
         <View className="px-6 mb-4">
-          <SearchBar placeholder="Search activities, neighborhoods..." />
+          <SearchBar
+            value={searchText}
+            onChangeText={setSearchText}
+            placeholder="Search activities, neighborhoods..."
+          />
         </View>
 
-        {/* Category chips */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -134,7 +143,6 @@ export default function HomeScreen() {
           ))}
         </ScrollView>
 
-        {/* Happening this week - horizontal carousel */}
         <View className="mb-6">
           <View className="flex-row items-center justify-between px-6 mb-3">
             <Text className="font-serif text-xl font-bold text-neutral-900">
@@ -145,30 +153,43 @@ export default function HomeScreen() {
               <IconSymbol name="chevron.right" size={14} color="#c3653c" />
             </Pressable>
           </View>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            data={thisWeek}
-            keyExtractor={item => item.id}
-            contentContainerClassName="px-6"
-            renderItem={({ item }) => (
-              <ActivityCard
-                variant="horizontal"
-                title={item.title}
-                category={item.category_name}
-                categoryIcon={item.category_icon}
-                neighborhood={item.neighborhood}
-                dateLabel={formatDate(item)}
-                posterName={item.poster_name}
-                trustScore={item.poster_trust_score}
-                companionCount={item.companion_count}
-                onPress={() => router.push(`/activity/${item.id}`)}
+          {featuredActivities.length > 0 ? (
+            <FlatList
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              data={featuredActivities}
+              keyExtractor={item => item.id}
+              contentContainerClassName="px-6"
+              renderItem={({ item }) => (
+                <ActivityCard
+                  variant="horizontal"
+                  title={item.title}
+                  category={item.categoryName}
+                  categoryIcon={item.categoryIcon}
+                  neighborhood={item.neighborhood}
+                  dateLabel={item.dateLabel}
+                  posterName={item.posterName}
+                  trustScore={item.posterTrustScore}
+                  companionCount={item.companionCount}
+                  onPress={() => router.push(`/activity/${item.id}`)}
+                />
+              )}
+            />
+          ) : (
+            <View className="px-6">
+              <ScreenState
+                icon="🗓️"
+                title="No activities yet"
+                description={
+                  deferredSearchText
+                    ? 'No live activities match your search yet.'
+                    : 'When people post open activities in your city, they will show up here.'
+                }
               />
-            )}
-          />
+            </View>
+          )}
         </View>
 
-        {/* Near you - vertical list */}
         <View className="px-6 mb-6">
           <View className="flex-row items-center justify-between mb-3">
             <Text className="font-serif text-xl font-bold text-neutral-900">
@@ -179,21 +200,27 @@ export default function HomeScreen() {
               <IconSymbol name="chevron.right" size={14} color="#c3653c" />
             </Pressable>
           </View>
-          {nearYou.map(item => (
-            <ActivityCard
-              key={item.id}
-              variant="vertical"
-              title={item.title}
-              category={item.category_name}
-              categoryIcon={item.category_icon}
-              neighborhood={item.neighborhood}
-              dateLabel={formatDate(item)}
-              posterName={item.poster_name}
-              trustScore={item.poster_trust_score}
-              companionCount={item.companion_count}
-              onPress={() => router.push(`/activity/${item.id}`)}
-            />
-          ))}
+          {nearbyActivities.length > 0 ? (
+            nearbyActivities.map(item => (
+              <ActivityCard
+                key={item.id}
+                variant="vertical"
+                title={item.title}
+                category={item.categoryName}
+                categoryIcon={item.categoryIcon}
+                neighborhood={item.neighborhood}
+                dateLabel={item.dateLabel}
+                posterName={item.posterName}
+                trustScore={item.posterTrustScore}
+                companionCount={item.companionCount}
+                onPress={() => router.push(`/activity/${item.id}`)}
+              />
+            ))
+          ) : featuredActivities.length > 0 ? (
+            <Text className="text-sm text-neutral-400 py-6">
+              More live activities will appear here as they are posted.
+            </Text>
+          ) : null}
         </View>
 
         <View className="h-20" />

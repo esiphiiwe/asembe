@@ -33,6 +33,7 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>;
+        Relationships: [];
       };
       categories: {
         Row: {
@@ -48,6 +49,7 @@ export type Database = {
           active?: boolean;
         };
         Update: Partial<Database['public']['Tables']['categories']['Insert']>;
+        Relationships: [];
       };
       activities: {
         Row: {
@@ -87,6 +89,7 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['activities']['Insert']>;
+        Relationships: [];
       };
       user_activity_preferences: {
         Row: {
@@ -108,6 +111,7 @@ export type Database = {
           preferred_age_range_max: number;
         };
         Update: Partial<Database['public']['Tables']['user_activity_preferences']['Insert']>;
+        Relationships: [];
       };
       match_requests: {
         Row: {
@@ -125,6 +129,7 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['match_requests']['Insert']>;
+        Relationships: [];
       };
       matches: {
         Row: {
@@ -144,6 +149,7 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['matches']['Insert']>;
+        Relationships: [];
       };
       reviews: {
         Row: {
@@ -169,6 +175,7 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['reviews']['Insert']>;
+        Relationships: [];
       };
       other_category_tracker: {
         Row: {
@@ -186,6 +193,7 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['other_category_tracker']['Insert']>;
+        Relationships: [];
       };
       chat_messages: {
         Row: {
@@ -203,8 +211,10 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['chat_messages']['Insert']>;
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
     Functions: Record<string, never>;
     Enums: {
       gender_type: 'woman' | 'man' | 'non-binary' | 'prefer-not-to-say';

@@ -1,20 +1,34 @@
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
 import type { Database } from '@/types/database';
 
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
+type CategoryRow = Database['public']['Tables']['categories']['Row'];
+
+export interface UserPreferenceView {
+  id: string;
+  categoryId: string;
+  categoryName: string;
+  categoryIcon: string;
+  skillLevel: Database['public']['Tables']['user_activity_preferences']['Row']['skill_level'];
+  preferredCompanionGender: Database['public']['Tables']['user_activity_preferences']['Row']['preferred_companion_gender'];
+  preferredAgeRangeMin: number;
+  preferredAgeRangeMax: number;
+}
 
 export async function getProfile(userId: string) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;
 }
 
 export async function updateProfile(userId: string, updates: ProfileUpdate) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('profiles')
     .update(updates)
@@ -27,6 +41,7 @@ export async function updateProfile(userId: string, updates: ProfileUpdate) {
 }
 
 export async function getUserPreferences(userId: string) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('user_activity_preferences')
     .select(`
@@ -36,7 +51,16 @@ export async function getUserPreferences(userId: string) {
     .eq('user_id', userId);
 
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map((preference: any) => ({
+    id: preference.id,
+    categoryId: preference.category_id,
+    categoryName: preference.categories?.name ?? preference.category_id,
+    categoryIcon: preference.categories?.icon ?? '✨',
+    skillLevel: preference.skill_level,
+    preferredCompanionGender: preference.preferred_companion_gender,
+    preferredAgeRangeMin: preference.preferred_age_range_min,
+    preferredAgeRangeMax: preference.preferred_age_range_max,
+  })) as UserPreferenceView[];
 }
 
 export async function upsertPreference(pref: {
@@ -47,6 +71,7 @@ export async function upsertPreference(pref: {
   preferredAgeRangeMin: number;
   preferredAgeRangeMax: number;
 }) {
+  const supabase = getSupabaseClient();
   const { error } = await supabase
     .from('user_activity_preferences')
     .upsert(
@@ -65,6 +90,7 @@ export async function upsertPreference(pref: {
 }
 
 export async function uploadProfilePhoto(userId: string, uri: string) {
+  const supabase = getSupabaseClient();
   const ext = uri.split('.').pop() ?? 'jpg';
   const path = `${userId}/avatar.${ext}`;
 
@@ -92,6 +118,7 @@ export async function uploadProfilePhoto(userId: string, uri: string) {
 }
 
 export async function getCategories() {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('categories')
     .select('*')
@@ -99,5 +126,5 @@ export async function getCategories() {
     .order('name');
 
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as CategoryRow[];
 }

@@ -1,6 +1,31 @@
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
 
-export async function getMessages(matchId: string) {
+export interface ChatMessageView {
+  id: string;
+  text: string;
+  timestamp: string;
+  isSent: boolean;
+}
+
+function mapChatMessage(message: {
+  id: string;
+  text: string;
+  sender_id: string;
+  created_at: string;
+}, currentUserId: string): ChatMessageView {
+  return {
+    id: message.id,
+    text: message.text,
+    timestamp: new Date(message.created_at).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+    }),
+    isSent: message.sender_id === currentUserId,
+  };
+}
+
+export async function getMessages(matchId: string, currentUserId: string) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('chat_messages')
     .select('*')
@@ -8,10 +33,11 @@ export async function getMessages(matchId: string) {
     .order('created_at', { ascending: true });
 
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map(message => mapChatMessage(message, currentUserId));
 }
 
 export async function sendMessage(matchId: string, senderId: string, text: string) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('chat_messages')
     .insert({ match_id: matchId, sender_id: senderId, text })
@@ -24,8 +50,10 @@ export async function sendMessage(matchId: string, senderId: string, text: strin
 
 export function subscribeToMessages(
   matchId: string,
-  onMessage: (message: any) => void
+  currentUserId: string,
+  onMessage: (message: ChatMessageView) => void
 ) {
+  const supabase = getSupabaseClient();
   const channel = supabase
     .channel(`chat:${matchId}`)
     .on(
@@ -37,7 +65,7 @@ export function subscribeToMessages(
         filter: `match_id=eq.${matchId}`,
       },
       (payload) => {
-        onMessage(payload.new);
+        onMessage(mapChatMessage(payload.new as any, currentUserId));
       }
     )
     .subscribe();

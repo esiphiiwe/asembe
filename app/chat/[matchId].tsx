@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 import {
   Text,
@@ -9,111 +9,117 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MessageBubble } from '@/components/ui/message-bubble';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { ScreenState } from '@/components/ui/screen-state';
 import { useAuth } from '@/lib/auth-context';
-import { getMessages, sendMessage as sendChatMessage, subscribeToMessages } from '@/services/chat';
-import { getMatchById } from '@/services/matches';
-import { MOCK_CHAT_MESSAGES, MOCK_MATCHES } from '@/lib/mock-data';
+import { getErrorMessage, isConfigError } from '@/lib/errors';
+import { getMessages, sendMessage as sendChatMessage, subscribeToMessages, type ChatMessageView } from '@/services/chat';
+import { getMatchById, type MatchDetailView } from '@/services/matches';
 
 export default function ChatScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const { user } = useAuth();
 
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<ChatMessageView[]>([]);
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [useMock, setUseMock] = useState(false);
-  const [companionName, setCompanionName] = useState('Companion');
-  const [activityTitle, setActivityTitle] = useState('Activity');
+  const [match, setMatch] = useState<MatchDetailView | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const flatListRef = useRef<FlatList>(null);
 
-  useEffect(() => {
-    loadMessages();
-  }, [matchId]);
-
-  useEffect(() => {
-    if (useMock || !matchId) return;
-    const unsubscribe = subscribeToMessages(matchId, (newMsg) => {
-      setMessages(prev => [...prev, {
-        id: newMsg.id,
-        text: newMsg.text,
-        timestamp: new Date(newMsg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-        isSent: newMsg.sender_id === user?.id,
-      }]);
-    });
-    return unsubscribe;
-  }, [matchId, useMock, user?.id]);
-
-  const loadMessages = async () => {
-    try {
-      const [msgs, matchData] = await Promise.all([
-        getMessages(matchId!),
-        user ? getMatchById(matchId!, user.id) : Promise.resolve(null),
-      ]);
-      setMessages(msgs.map(msg => ({
-        id: msg.id,
-        text: msg.text,
-        timestamp: new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-        isSent: msg.sender_id === user?.id,
-      })));
-      if (matchData) {
-        setCompanionName(matchData.companion_name);
-        setActivityTitle(matchData.activity_title);
-      }
-      setUseMock(false);
-    } catch {
-      const match = MOCK_MATCHES.find(m => m.id === matchId) ?? MOCK_MATCHES[0];
-      setCompanionName(match.companionName);
-      setActivityTitle(match.activityTitle);
-      setMessages(MOCK_CHAT_MESSAGES.map(m => ({
-        ...m,
-        timestamp: m.timestamp,
-      })));
-      setUseMock(true);
-    } finally {
+  const loadMessages = useCallback(async () => {
+    if (!user || !matchId) {
+      setError(new Error('You need to be signed in to view this chat.'));
       setLoading(false);
-    }
-  };
-
-  const handleSend = async () => {
-    if (!text.trim()) return;
-    const messageText = text.trim();
-    setText('');
-
-    if (useMock) {
-      setMessages(prev => [...prev, {
-        id: `c${prev.length + 1}`,
-        text: messageText,
-        timestamp: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-        isSent: true,
-      }]);
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
       return;
     }
 
-    setSending(true);
+    setError(null);
+
     try {
-      await sendChatMessage(matchId!, user!.id, messageText);
+      const [messageData, matchData] = await Promise.all([
+        getMessages(matchId, user.id),
+        getMatchById(matchId, user.id),
+      ]);
+
+      setMessages(messageData);
+      setMatch(matchData);
+    } catch (error) {
+      setMessages([]);
+      setMatch(null);
+      setError(error);
+    } finally {
+      setLoading(false);
+    }
+  }, [matchId, user]);
+
+  useEffect(() => {
+    void loadMessages();
+  }, [loadMessages]);
+
+  useEffect(() => {
+    if (!matchId || !user) return;
+
+    const unsubscribe = subscribeToMessages(matchId, user.id, newMessage => {
+      setMessages(prev =>
+        prev.some(message => message.id === newMessage.id)
+          ? prev
+          : [...prev, newMessage]
+      );
+    });
+
+    return unsubscribe;
+  }, [matchId, user]);
+
+  const handleSend = async () => {
+    if (!text.trim() || !user || !matchId) return;
+
+    const messageText = text.trim();
+    setText('');
+    setSending(true);
+
+    try {
+      await sendChatMessage(matchId, user.id, messageText);
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-    } catch {
+    } catch (error) {
       setText(messageText);
+      Alert.alert('Message failed', getErrorMessage(error, 'Could not send your message.'));
     } finally {
       setSending(false);
     }
   };
-
-  const displayCompanionName = companionName;
-  const displayActivityTitle = activityTitle;
 
   if (loading) {
     return (
       <View className="flex-1 bg-neutral-50 items-center justify-center">
         <ActivityIndicator size="large" color="#e8572a" />
       </View>
+    );
+  }
+
+  if (error || !match) {
+    return (
+      <SafeAreaView className="flex-1 bg-neutral-50" edges={['top']}>
+        <ScreenState
+          icon={isConfigError(error) ? '🛠️' : '💬'}
+          title={isConfigError(error) ? 'Finish Supabase setup' : 'Chat unavailable'}
+          description={getErrorMessage(
+            error,
+            'We could not load this conversation from live data right now.'
+          )}
+          actionLabel="Try again"
+          onAction={() => {
+            setLoading(true);
+            void loadMessages();
+          }}
+          fullScreen
+        />
+      </SafeAreaView>
     );
   }
 
@@ -130,15 +136,15 @@ export default function ChatScreen() {
         <View className="flex-row items-center flex-1 ml-2">
           <View className="w-9 h-9 bg-primary-200 rounded-full items-center justify-center">
             <Text className="text-xs font-bold text-primary-800">
-              {displayCompanionName.charAt(0)}
+              {match.companionName.charAt(0)}
             </Text>
           </View>
           <View className="ml-2.5">
             <Text className="text-base font-semibold text-neutral-900">
-              {displayCompanionName}
+              {match.companionName}
             </Text>
             <Text className="text-xs text-neutral-400" numberOfLines={1}>
-              {displayActivityTitle}
+              {match.activityTitle}
             </Text>
           </View>
         </View>
@@ -169,6 +175,13 @@ export default function ChatScreen() {
           keyExtractor={item => item.id}
           contentContainerClassName="px-4 pt-2 pb-4"
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View className="items-center justify-center py-12">
+              <Text className="text-sm text-neutral-400 text-center leading-5">
+                No messages yet. Start the conversation when you are ready.
+              </Text>
+            </View>
+          }
           renderItem={({ item }) => (
             <MessageBubble
               text={item.text}

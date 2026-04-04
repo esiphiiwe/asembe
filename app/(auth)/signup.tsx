@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Text, View, ScrollView, Pressable, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -20,9 +20,13 @@ const GENDERS = [
 ] as const;
 
 export default function SignUpScreen() {
-  const { signUp, createProfile, user } = useAuth();
+  const { signUp, createProfile, user, profile } = useAuth();
 
-  const [step, setStep] = useState(1);
+  const isCompletingProfile = !!user && !profile;
+  const minimumStep = isCompletingProfile ? 2 : 1;
+  const totalSteps = isCompletingProfile ? 2 : 3;
+
+  const [step, setStep] = useState(minimumStep);
   const [loading, setLoading] = useState(false);
 
   const [email, setEmail] = useState('');
@@ -35,11 +39,20 @@ export default function SignUpScreen() {
   const [bio, setBio] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
+  useEffect(() => {
+    if (step < minimumStep) {
+      setStep(minimumStep);
+    }
+  }, [minimumStep, step]);
+
   const toggleCategory = (cat: string) => {
     setSelectedCategories(prev =>
       prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
     );
   };
+
+  const displayedStep = step - minimumStep + 1;
+  const progressPercent = (displayedStep / totalSteps) * 100;
 
   const handleStep1Next = () => {
     if (!email || !password || !confirmPassword) {
@@ -78,14 +91,28 @@ export default function SignUpScreen() {
 
     setLoading(true);
     try {
-      const { error: signUpError } = await signUp(email, password);
-      if (signUpError) {
-        Alert.alert('Sign up failed', signUpError.message);
+      let accountUser = user;
+
+      if (!isCompletingProfile) {
+        const { user: createdUser, error: signUpError } = await signUp(email, password);
+        if (signUpError) {
+          Alert.alert('Sign up failed', signUpError.message);
+          setLoading(false);
+          return;
+        }
+
+        accountUser = createdUser;
+      }
+
+      if (!accountUser?.email) {
+        Alert.alert('Account error', 'Could not establish your account session. Please try again.');
         setLoading(false);
         return;
       }
 
       const { error: profileError } = await createProfile({
+        userId: accountUser.id,
+        email: accountUser.email,
         name,
         gender: gender as Gender,
         age: parseInt(age, 10),
@@ -114,7 +141,7 @@ export default function SignUpScreen() {
             .filter(Boolean)
             .map(categoryId =>
               upsertPreference({
-                userId: user!.id,
+                userId: accountUser.id,
                 categoryId,
                 skillLevel: 'beginner',
                 preferredCompanionGender: 'any',
@@ -144,14 +171,20 @@ export default function SignUpScreen() {
         {/* Header */}
         <View className="flex-row items-center px-6 pt-2 pb-4">
           <Pressable
-            onPress={() => (step > 1 ? setStep(step - 1) : router.back())}
+            onPress={() => {
+              if (step > minimumStep) {
+                setStep(step - 1);
+              } else if (!isCompletingProfile) {
+                router.back();
+              }
+            }}
             className="w-10 h-10 items-center justify-center rounded-full bg-white border border-neutral-200"
           >
             <IconSymbol name="arrow.left" size={20} color="#1c1917" />
           </Pressable>
           <View className="flex-1 items-center">
             <Text className="text-sm font-medium text-neutral-500">
-              Step {step} of 3
+              Step {displayedStep} of {totalSteps}
             </Text>
           </View>
           <View className="w-10" />
@@ -162,7 +195,7 @@ export default function SignUpScreen() {
           <View className="h-1 bg-neutral-200 rounded-full overflow-hidden">
             <View
               className="h-full bg-accent rounded-full"
-              style={{ width: `${(step / 3) * 100}%` }}
+              style={{ width: `${progressPercent}%` }}
             />
           </View>
         </View>
@@ -174,7 +207,7 @@ export default function SignUpScreen() {
                 Create your account
               </Text>
               <Text className="text-base text-neutral-500 mb-8">
-                We'll need a few details to get you started.
+                We&apos;ll need a few details to get you started.
               </Text>
 
               <FormInput
@@ -206,10 +239,12 @@ export default function SignUpScreen() {
           {step === 2 && (
             <Animated.View entering={FadeInRight.duration(300)} exiting={FadeOutLeft.duration(200)}>
               <Text className="font-serif text-3xl font-bold text-neutral-900 mb-2">
-                About you
+                {isCompletingProfile ? 'Complete your profile' : 'About you'}
               </Text>
               <Text className="text-base text-neutral-500 mb-8">
-                This is how companions will see you.
+                {isCompletingProfile
+                  ? 'Finish setting up your profile so people can discover your activities.'
+                  : 'This is how companions will see you.'}
               </Text>
 
               {/* Photo picker placeholder */}
@@ -282,7 +317,7 @@ export default function SignUpScreen() {
                 What are you into?
               </Text>
               <Text className="text-base text-neutral-500 mb-8">
-                Pick the activities you'd like to find companions for.
+                Pick the activities you&apos;d like to find companions for.
               </Text>
 
               <View className="flex-row flex-wrap gap-2">
@@ -317,7 +352,7 @@ export default function SignUpScreen() {
                 size="lg"
               />
               <Text className="text-center text-xs text-neutral-400 mt-4 leading-4">
-                By continuing, you agree to Asambe's{' '}
+                By continuing, you agree to Asambe&apos;s{' '}
                 <Text className="text-neutral-600 underline">Terms of Service</Text>{' '}
                 and{' '}
                 <Text className="text-neutral-600 underline">Privacy Policy</Text>.
@@ -334,7 +369,11 @@ export default function SignUpScreen() {
           )}
           {step === 3 && (
             <AsambeButton
-              title={loading ? 'Creating account...' : 'Create account'}
+              title={
+                isCompletingProfile
+                  ? (loading ? 'Saving profile...' : 'Finish profile')
+                  : (loading ? 'Creating account...' : 'Create account')
+              }
               onPress={handleCreateAccount}
               fullWidth
               size="lg"

@@ -1,4 +1,23 @@
-import { supabase } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
+
+export interface UserReviewView {
+  id: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  reviewerName: string;
+  reviewerPhoto: string | null;
+}
+
+export interface PendingReviewMatchView {
+  id: string;
+  companionId: string;
+  companionName: string;
+  companionPhoto: string | null;
+  activityTitle: string;
+  categoryName: string;
+  categoryIcon: string;
+}
 
 export async function createReview(data: {
   matchId: string;
@@ -9,6 +28,7 @@ export async function createReview(data: {
   flagged?: boolean;
   flagReason?: string;
 }) {
+  const supabase = getSupabaseClient();
   const { data: review, error } = await supabase
     .from('reviews')
     .insert({
@@ -28,6 +48,7 @@ export async function createReview(data: {
 }
 
 export async function getReviewsForUser(userId: string) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('reviews')
     .select(`
@@ -39,14 +60,17 @@ export async function getReviewsForUser(userId: string) {
 
   if (error) throw error;
   return (data ?? []).map((row: any) => ({
-    ...row,
-    reviewer_name: row.profiles?.name ?? 'Unknown',
-    reviewer_photo: row.profiles?.profile_photo,
-    profiles: undefined,
-  }));
+    id: row.id,
+    rating: row.rating,
+    comment: row.comment ?? null,
+    createdAt: row.created_at,
+    reviewerName: row.profiles?.name ?? 'Unknown',
+    reviewerPhoto: row.profiles?.profile_photo ?? null,
+  })) as UserReviewView[];
 }
 
 export async function hasReviewedMatch(matchId: string, reviewerId: string) {
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('reviews')
     .select('id')
@@ -59,6 +83,7 @@ export async function hasReviewedMatch(matchId: string, reviewerId: string) {
 }
 
 export async function getCompletedMatchesPendingReview(userId: string) {
+  const supabase = getSupabaseClient();
   const { data: matches, error } = await supabase
     .from('matches')
     .select(`
@@ -82,18 +107,20 @@ export async function getCompletedMatchesPendingReview(userId: string) {
 
   const reviewedMatchIds = new Set((existingReviews ?? []).map(r => r.match_id));
 
-  return (matches ?? [])
+  const loadedMatches = (matches ?? []) as any[];
+
+  return loadedMatches
     .filter(m => !reviewedMatchIds.has(m.id))
     .map((match: any) => {
       const companion = match.user1?.id === userId ? match.user2 : match.user1;
       return {
-        ...match,
-        companion_id: companion?.id,
-        companion_name: companion?.name ?? 'Unknown',
-        companion_photo: companion?.profile_photo,
-        activity_title: match.activities?.title ?? '',
-        category_name: match.activities?.categories?.name ?? 'other',
-        category_icon: match.activities?.categories?.icon ?? '✨',
+        id: match.id,
+        companionId: companion?.id ?? '',
+        companionName: companion?.name ?? 'Unknown',
+        companionPhoto: companion?.profile_photo ?? null,
+        activityTitle: match.activities?.title ?? '',
+        categoryName: match.activities?.categories?.name ?? 'other',
+        categoryIcon: match.activities?.categories?.icon ?? '✨',
       };
-    });
+    }) as PendingReviewMatchView[];
 }

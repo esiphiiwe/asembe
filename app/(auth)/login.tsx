@@ -92,7 +92,7 @@ export default function LoginScreen() {
 
           <View className="pb-6 items-center">
             <Text className="text-sm text-neutral-400">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link href="/(auth)/signup" asChild>
                 <Text className="text-accent font-semibold">Sign up</Text>
               </Link>

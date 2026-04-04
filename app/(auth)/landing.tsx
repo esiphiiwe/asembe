@@ -46,7 +46,7 @@ export default function LandingScreen() {
           </Text>
           <View className="w-12 h-0.5 bg-accent mt-4 mb-5 rounded-full" />
           <Text className="text-lg text-neutral-500 text-center leading-7 px-4">
-            Let's go — find someone{'\n'}to do things with
+            Let&apos;s go — find someone{'\n'}to do things with
           </Text>
         </Animated.View>
 

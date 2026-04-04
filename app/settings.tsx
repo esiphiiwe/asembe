@@ -97,7 +97,7 @@ export default function SettingsScreen() {
             />
             <View className="h-px bg-neutral-50 mx-4" />
             <SettingsRow
-              icon="shield.checkmark"
+              icon="checkmark.circle.fill"
               label="Photo verification"
               value={profile?.verified ? 'Verified' : 'Not verified'}
               iconColor={profile?.verified ? '#16a34a' : undefined}
