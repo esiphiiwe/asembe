@@ -7,13 +7,13 @@ import { StatBadge } from '@/components/ui/stat-badge';
 import { ActivityCard } from '@/components/ui/activity-card';
 import { ScreenState } from '@/components/ui/screen-state';
 import { useAuth } from '@/lib/auth-context';
-import { getErrorMessage, isConfigError } from '@/lib/errors';
+import { getErrorMessage, isConfigError, isSetupError } from '@/lib/errors';
 import { getUserActivities, type UserActivityView } from '@/services/activities';
 import { getReviewsForUser, type UserReviewView } from '@/services/reviews';
 import { getUserPreferences, type UserPreferenceView } from '@/services/profiles';
 
 export default function ProfileScreen() {
-  const { user: authUser, profile, refreshProfile, isLoading: authLoading } = useAuth();
+  const { user: authUser, profile, refreshProfile, isLoading: authLoading, error: authError } = useAuth();
 
   const [myActivities, setMyActivities] = useState<UserActivityView[]>([]);
   const [myReviews, setMyReviews] = useState<UserReviewView[]>([]);
@@ -69,11 +69,24 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView className="flex-1 bg-neutral-50" edges={['top']}>
         <ScreenState
-          icon="👤"
-          title="Complete your profile"
-          description="We need your real profile details before this page can load."
-          actionLabel="Finish profile"
-          onAction={() => router.replace('/(auth)/signup')}
+          icon={isSetupError(authError) ? '🛠️' : '👤'}
+          title={isSetupError(authError) ? 'Finish Supabase setup' : 'Complete your profile'}
+          description={isSetupError(authError)
+            ? getErrorMessage(
+              authError,
+              'Your Supabase schema is incomplete. Apply the project migrations, then reload the app.'
+            )
+            : 'We need your real profile details before this page can load.'}
+          actionLabel={isSetupError(authError) ? 'Try again' : 'Finish profile'}
+          onAction={() => {
+            if (isSetupError(authError)) {
+              setLoading(true);
+              void Promise.all([loadProfileData(), refreshProfile()]);
+              return;
+            }
+
+            router.replace('/(auth)/signup');
+          }}
           fullScreen
         />
       </SafeAreaView>

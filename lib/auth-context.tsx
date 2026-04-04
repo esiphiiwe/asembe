@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { getSupabaseClient, isSupabaseConfigured } from './supabase';
+import { getSupabaseClient, getSupabaseSetupError, isSupabaseConfigured } from './supabase';
 import type { Database } from '@/types/database';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -11,6 +11,7 @@ interface AuthState {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
+  error: Error | null;
   isLoading: boolean;
   isOnboarded: boolean;
 }
@@ -35,6 +36,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     session: null,
     user: null,
     profile: null,
+    error: null,
     isLoading: true,
     isOnboarded: false,
   });
@@ -48,7 +50,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       .maybeSingle();
 
     if (error) {
-      throw error;
+      throw getSupabaseSetupError(error) ?? error;
     }
 
     return data;
@@ -56,7 +58,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
-      setState(prev => ({ ...prev, isLoading: false }));
+      setState(prev => ({ ...prev, error: null, isLoading: false }));
       return;
     }
 
@@ -78,12 +80,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
           session,
           user: session?.user ?? null,
           profile,
+          error: null,
           isLoading: false,
           isOnboarded: !!profile,
         });
       }
       catch (error) {
-        console.error('Failed to synchronize auth state', error);
+        const normalizedError = error instanceof Error
+          ? error
+          : new Error('Failed to synchronize auth state.');
+
+        console.warn('Failed to synchronize auth state', normalizedError);
 
         if (!isMounted) {
           return;
@@ -93,8 +100,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
           session,
           user: session?.user ?? null,
           profile: null,
+          error: normalizedError,
           isLoading: false,
-          isOnboarded: false,
+          isOnboarded: !!session?.user,
         });
       }
     };
@@ -151,6 +159,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       session: null,
       user: null,
       profile: null,
+      error: null,
       isLoading: false,
       isOnboarded: false,
     });
@@ -173,6 +182,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setState(prev => ({
           ...prev,
           profile,
+          error: null,
           isOnboarded: !!profile,
         }));
       }
@@ -188,9 +198,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     try {
       const profile = await fetchProfile(state.user.id);
-      setState(prev => ({ ...prev, profile, isOnboarded: !!profile }));
+      setState(prev => ({ ...prev, profile, error: null, isOnboarded: !!profile }));
     } catch (error) {
-      console.error('Failed to refresh profile', error);
+      console.warn('Failed to refresh profile', error);
+      setState(prev => ({
+        ...prev,
+        error: error instanceof Error ? error : new Error('Failed to refresh profile.'),
+      }));
     }
   };
 
