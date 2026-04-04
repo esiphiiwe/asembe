@@ -1,23 +1,26 @@
 import { useState } from 'react';
 import { Text, View, ScrollView, Pressable, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { AsambeButton } from '@/components/ui/asambe-button';
+import { NavIconButton } from '@/components/ui/nav-icon-button';
+import { useBackNavigation } from '@/hooks/use-back-navigation';
 import { useAuth } from '@/lib/auth-context';
 import { createReview } from '@/services/reviews';
 
 const STAR_LABELS = ['', 'Not great', 'Could be better', 'Good', 'Great', 'Amazing'];
 
 export default function ReviewScreen() {
-  const { matchId, companionName, companionId, activityTitle, categoryIcon } =
+  const { matchId, companionName, companionId, activityTitle, categoryIcon, returnTo } =
     useLocalSearchParams<{
       matchId: string;
       companionName: string;
       companionId: string;
       activityTitle: string;
       categoryIcon: string;
+      returnTo?: string;
     }>();
 
   const { user } = useAuth();
@@ -27,6 +30,10 @@ export default function ReviewScreen() {
   const [flagReason, setFlagReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const handleBack = useBackNavigation({
+    fallbackHref: '/(tabs)/inbox',
+    returnTo,
+  });
 
   const handleSubmit = async () => {
     if (rating === 0) {
@@ -76,7 +83,7 @@ export default function ReviewScreen() {
             </Text>
             <AsambeButton
               title="Back to matches"
-              onPress={() => router.back()}
+              onPress={handleBack}
               fullWidth
               size="lg"
             />
@@ -90,12 +97,12 @@ export default function ReviewScreen() {
     <SafeAreaView className="flex-1 bg-neutral-50">
       {/* Header */}
       <View className="flex-row items-center px-6 pt-2 pb-4">
-        <Pressable
-          onPress={() => router.back()}
-          className="w-10 h-10 items-center justify-center rounded-full bg-white border border-neutral-200"
-        >
-          <IconSymbol name="xmark" size={18} color="#1c1917" />
-        </Pressable>
+        <NavIconButton
+          icon="xmark"
+          iconSize={18}
+          onPress={handleBack}
+          variant="bordered"
+        />
         <View className="flex-1 items-center">
           <Text className="text-sm font-medium text-neutral-500">Post-activity review</Text>
         </View>
@@ -228,7 +235,7 @@ export default function ReviewScreen() {
           size="lg"
           disabled={submitting || rating === 0}
         />
-        <Pressable onPress={() => router.back()} className="mt-3 items-center py-2">
+        <Pressable onPress={handleBack} className="mt-3 items-center py-2">
           <Text className="text-sm font-medium text-neutral-500">Skip for now</Text>
         </Pressable>
       </View>

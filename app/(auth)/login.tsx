@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, router } from 'expo-router';
 import { FormInput } from '@/components/ui/form-input';
 import { AsambeButton } from '@/components/ui/asambe-button';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { NavIconButton } from '@/components/ui/nav-icon-button';
+import { useBackNavigation } from '@/hooks/use-back-navigation';
 import { useAuth } from '@/lib/auth-context';
 
 export default function LoginScreen() {
@@ -12,6 +13,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const handleBack = useBackNavigation({ fallbackHref: '/(auth)/landing' });
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -42,12 +44,11 @@ export default function LoginScreen() {
       >
         {/* Header */}
         <View className="flex-row items-center px-6 pt-2 pb-4">
-          <Pressable
-            onPress={() => router.back()}
-            className="w-10 h-10 items-center justify-center rounded-full bg-white border border-neutral-200"
-          >
-            <IconSymbol name="arrow.left" size={20} color="#1c1917" />
-          </Pressable>
+          <NavIconButton
+            icon="arrow.left"
+            onPress={handleBack}
+            variant="bordered"
+          />
         </View>
 
         <View className="flex-1 px-6 justify-between">

@@ -6,6 +6,7 @@ export default function ChatLayout() {
       <Stack.Screen
         name="[matchId]"
         options={{
+          headerShown: false,
           title: 'Chat',
         }}
       />

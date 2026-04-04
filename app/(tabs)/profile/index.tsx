@@ -147,7 +147,12 @@ export default function ProfileScreen() {
             My Profile
           </Text>
           <Pressable
-            onPress={() => router.push('/settings')}
+            onPress={() =>
+              router.push({
+                pathname: '/settings',
+                params: { returnTo: '/(tabs)/profile' },
+              })
+            }
             className="w-10 h-10 bg-white border border-neutral-200 rounded-full items-center justify-center"
           >
             <IconSymbol name="gearshape.fill" size={18} color="#44403c" />
@@ -245,7 +250,15 @@ export default function ProfileScreen() {
                   posterName={userName}
                   trustScore={trustScore}
                   companionCount={item.companionCount}
-                  onPress={() => router.push(`/activity/${item.id}`)}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/activity/[id]',
+                      params: {
+                        id: item.id,
+                        returnTo: '/(tabs)/profile',
+                      },
+                    })
+                  }
                 />
               )}
             />

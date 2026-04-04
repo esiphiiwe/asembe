@@ -6,7 +6,9 @@ import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
 import { FormInput } from '@/components/ui/form-input';
 import { AsambeButton } from '@/components/ui/asambe-button';
 import { CategoryChip } from '@/components/ui/category-chip';
+import { NavIconButton } from '@/components/ui/nav-icon-button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useBackNavigation } from '@/hooks/use-back-navigation';
 import { CATEGORIES, BIO_MAX_LENGTH } from '@/lib/constants';
 import { useAuth } from '@/lib/auth-context';
 import { getCategories, upsertPreference } from '@/services/profiles';
@@ -38,6 +40,7 @@ export default function SignUpScreen() {
   const [city, setCity] = useState('');
   const [bio, setBio] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const handleBack = useBackNavigation({ fallbackHref: '/(auth)/landing' });
 
   useEffect(() => {
     if (step < minimumStep) {
@@ -170,18 +173,17 @@ export default function SignUpScreen() {
       >
         {/* Header */}
         <View className="flex-row items-center px-6 pt-2 pb-4">
-          <Pressable
+          <NavIconButton
+            icon="arrow.left"
             onPress={() => {
               if (step > minimumStep) {
                 setStep(step - 1);
               } else if (!isCompletingProfile) {
-                router.back();
+                handleBack();
               }
             }}
-            className="w-10 h-10 items-center justify-center rounded-full bg-white border border-neutral-200"
-          >
-            <IconSymbol name="arrow.left" size={20} color="#1c1917" />
-          </Pressable>
+            variant="bordered"
+          />
           <View className="flex-1 items-center">
             <Text className="text-sm font-medium text-neutral-500">
               Step {displayedStep} of {totalSteps}

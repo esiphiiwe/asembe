@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import {
   Text,
   View,
@@ -14,14 +14,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MessageBubble } from '@/components/ui/message-bubble';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { NavIconButton } from '@/components/ui/nav-icon-button';
 import { ScreenState } from '@/components/ui/screen-state';
+import { useBackNavigation } from '@/hooks/use-back-navigation';
 import { useAuth } from '@/lib/auth-context';
 import { getErrorMessage, isConfigError } from '@/lib/errors';
 import { getMessages, sendMessage as sendChatMessage, subscribeToMessages, type ChatMessageView } from '@/services/chat';
 import { getMatchById, type MatchDetailView } from '@/services/matches';
 
 export default function ChatScreen() {
-  const { matchId } = useLocalSearchParams<{ matchId: string }>();
+  const { matchId, returnTo } = useLocalSearchParams<{ matchId: string; returnTo?: string }>();
   const { user } = useAuth();
 
   const [messages, setMessages] = useState<ChatMessageView[]>([]);
@@ -31,6 +33,10 @@ export default function ChatScreen() {
   const [match, setMatch] = useState<MatchDetailView | null>(null);
   const [error, setError] = useState<unknown>(null);
   const flatListRef = useRef<FlatList>(null);
+  const handleBack = useBackNavigation({
+    fallbackHref: '/(tabs)/inbox',
+    returnTo,
+  });
 
   const loadMessages = useCallback(async () => {
     if (!user || !matchId) {
@@ -126,12 +132,12 @@ export default function ChatScreen() {
   return (
     <SafeAreaView className="flex-1 bg-neutral-50" edges={['top']}>
       <View className="flex-row items-center px-4 py-3 bg-white border-b border-neutral-100">
-        <Pressable
-          onPress={() => router.back()}
-          className="w-9 h-9 items-center justify-center rounded-full"
-        >
-          <IconSymbol name="arrow.left" size={20} color="#1c1917" />
-        </Pressable>
+        <NavIconButton
+          icon="arrow.left"
+          onPress={handleBack}
+          size={36}
+          variant="plain"
+        />
 
         <View className="flex-row items-center flex-1 ml-2">
           <View className="w-9 h-9 bg-primary-200 rounded-full items-center justify-center">

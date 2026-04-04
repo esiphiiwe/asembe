@@ -233,8 +233,24 @@ export default function MatchInboxScreen() {
                 companionTrustScore={match.companionTrustScore}
                 dateLabel={match.dateLabel}
                 neighborhood={match.neighborhood}
-                onChat={() => router.push(`/chat/${match.id}`)}
-                onView={() => router.push(`/activity/${match.activityId}`)}
+                onChat={() =>
+                  router.push({
+                    pathname: '/chat/[matchId]',
+                    params: {
+                      matchId: match.id,
+                      returnTo: '/(tabs)/inbox',
+                    },
+                  })
+                }
+                onView={() =>
+                  router.push({
+                    pathname: '/activity/[id]',
+                    params: {
+                      id: match.activityId,
+                      returnTo: '/(tabs)/inbox',
+                    },
+                  })
+                }
               />
             ))
           )
@@ -264,6 +280,7 @@ export default function MatchInboxScreen() {
                       companionId: match.companionId,
                       activityTitle: match.activityTitle,
                       categoryIcon: match.categoryIcon,
+                      returnTo: '/(tabs)/inbox',
                     },
                   })
                 }

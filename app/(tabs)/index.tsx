@@ -94,7 +94,12 @@ export default function HomeScreen() {
           </Text>
         </View>
         <Pressable
-          onPress={() => router.push('/settings')}
+          onPress={() =>
+            router.push({
+              pathname: '/settings',
+              params: { returnTo: '/(tabs)' },
+            })
+          }
           className="w-10 h-10 bg-white border border-neutral-200 rounded-full items-center justify-center"
         >
           <IconSymbol name="gearshape.fill" size={18} color="#44403c" />
@@ -171,7 +176,15 @@ export default function HomeScreen() {
                   posterName={item.posterName}
                   trustScore={item.posterTrustScore}
                   companionCount={item.companionCount}
-                  onPress={() => router.push(`/activity/${item.id}`)}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/activity/[id]',
+                      params: {
+                        id: item.id,
+                        returnTo: '/(tabs)',
+                      },
+                    })
+                  }
                 />
               )}
             />
@@ -213,7 +226,15 @@ export default function HomeScreen() {
                 posterName={item.posterName}
                 trustScore={item.posterTrustScore}
                 companionCount={item.companionCount}
-                onPress={() => router.push(`/activity/${item.id}`)}
+                onPress={() =>
+                  router.push({
+                    pathname: '/activity/[id]',
+                    params: {
+                      id: item.id,
+                      returnTo: '/(tabs)',
+                    },
+                  })
+                }
               />
             ))
           ) : featuredActivities.length > 0 ? (

@@ -1,16 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Text, View, ScrollView, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { NavIconButton } from '@/components/ui/nav-icon-button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { AsambeButton } from '@/components/ui/asambe-button';
 import { ScreenState } from '@/components/ui/screen-state';
+import { useBackNavigation } from '@/hooks/use-back-navigation';
 import { useAuth } from '@/lib/auth-context';
 import { getErrorMessage, isConfigError, isDuplicateError } from '@/lib/errors';
 import { getActivityById, type ActivityDetailView } from '@/services/activities';
 import { createMatchRequest } from '@/services/matches';
 
 export default function ActivityDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>();
   const { user } = useAuth();
 
   const [activity, setActivity] = useState<ActivityDetailView | null>(null);
@@ -35,6 +37,11 @@ export default function ActivityDetailScreen() {
   useEffect(() => {
     void loadActivity();
   }, [loadActivity]);
+
+  const handleBack = useBackNavigation({
+    fallbackHref: '/(tabs)',
+    returnTo,
+  });
 
   const handleRequestToJoin = async () => {
     if (!user) {
@@ -104,12 +111,11 @@ export default function ActivityDetailScreen() {
           </View>
 
           <View className="absolute top-12 left-0 right-0 flex-row justify-between px-4">
-            <Pressable
-              onPress={() => router.back()}
-              className="w-10 h-10 bg-white/90 rounded-full items-center justify-center shadow-sm"
-            >
-              <IconSymbol name="arrow.left" size={20} color="#1c1917" />
-            </Pressable>
+            <NavIconButton
+              icon="arrow.left"
+              onPress={handleBack}
+              variant="overlay"
+            />
             <View className="flex-row gap-2">
               <Pressable className="w-10 h-10 bg-white/90 rounded-full items-center justify-center shadow-sm">
                 <IconSymbol name="square.and.arrow.up" size={18} color="#1c1917" />

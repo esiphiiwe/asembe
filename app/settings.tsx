@@ -1,15 +1,22 @@
 import { useState } from 'react';
 import { Text, View, ScrollView, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
+import { NavIconButton } from '@/components/ui/nav-icon-button';
 import { SettingsRow } from '@/components/ui/settings-row';
+import { useBackNavigation } from '@/hooks/use-back-navigation';
 import { useAuth } from '@/lib/auth-context';
 import { SUBSCRIPTION_TIERS } from '@/lib/constants';
 
 export default function SettingsScreen() {
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
   const { profile, signOut } = useAuth();
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(false);
+  const handleBack = useBackNavigation({
+    fallbackHref: '/(tabs)/profile',
+    returnTo,
+  });
 
   const handleLogout = () => {
     Alert.alert('Log out', 'Are you sure you want to log out?', [
@@ -28,8 +35,13 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-neutral-50" edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-        <View className="px-6 pt-4 pb-2">
-          <Text className="font-serif text-3xl font-bold text-neutral-900">
+        <View className="px-6 pt-2 pb-2">
+          <NavIconButton
+            icon="arrow.left"
+            onPress={handleBack}
+            variant="bordered"
+          />
+          <Text className="mt-4 font-serif text-3xl font-bold text-neutral-900">
             Settings
           </Text>
         </View>
