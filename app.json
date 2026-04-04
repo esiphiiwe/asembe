@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "asambe-temp",
-    "slug": "asambe-temp",
+    "name": "Asambe",
+    "slug": "asambe",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "asambetemp",
+    "scheme": "asambe",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -38,7 +38,8 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

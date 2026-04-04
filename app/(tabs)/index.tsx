@@ -1,98 +1,203 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { useState, useEffect, useCallback } from 'react';
+import { Text, View, ScrollView, FlatList, Pressable, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { SearchBar } from '@/components/ui/search-bar';
+import { CategoryChip } from '@/components/ui/category-chip';
+import { ActivityCard } from '@/components/ui/activity-card';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { CATEGORIES } from '@/lib/constants';
+import { useAuth } from '@/lib/auth-context';
+import { getOpenActivities, type ActivityWithPoster } from '@/services/activities';
+import { MOCK_ACTIVITIES, formatActivityDate } from '@/lib/mock-data';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const { profile } = useAuth();
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [activities, setActivities] = useState<ActivityWithPoster[]>([]);
+  const [useMock, setUseMock] = useState(false);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const loadActivities = useCallback(async () => {
+    try {
+      const data = await getOpenActivities({
+        city: profile?.city,
+        category: selectedCategory ?? undefined,
+      });
+      setActivities(data);
+      setUseMock(false);
+    } catch {
+      setUseMock(true);
+    }
+  }, [profile?.city, selectedCategory]);
+
+  useEffect(() => {
+    loadActivities();
+  }, [loadActivities]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadActivities();
+    setRefreshing(false);
+  };
+
+  const displayActivities = useMock
+    ? (selectedCategory
+        ? MOCK_ACTIVITIES.filter(a => a.categoryName === selectedCategory)
+        : MOCK_ACTIVITIES
+      ).map(a => ({
+        ...a,
+        user_id: a.userId,
+        category_id: a.categoryId,
+        custom_category_label: null,
+        date_time: a.dateTime?.toISOString() ?? null,
+        recurrence_rule: a.recurrenceRule ?? null,
+        recurrence_end_date: null,
+        companion_count: a.companionCount,
+        poster_name: a.posterName,
+        poster_trust_score: a.posterTrustScore,
+        category_name: a.categoryName,
+        category_icon: a.categoryIcon,
+        created_at: a.createdAt.toISOString(),
+      } as unknown as ActivityWithPoster))
+    : activities;
+
+  const filtered = selectedCategory && !useMock
+    ? displayActivities.filter(a => a.category_name === selectedCategory)
+    : displayActivities;
+
+  const thisWeek = filtered.slice(0, 4);
+  const nearYou = filtered.slice(2);
+
+  const formatDate = (a: ActivityWithPoster) => {
+    if (!a.date_time) return 'Recurring';
+    return formatActivityDate(new Date(a.date_time));
+  };
+
+  return (
+    <SafeAreaView className="flex-1 bg-neutral-50" edges={['top']}>
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-6 pt-2 pb-3">
+        <View>
+          <Text className="font-serif text-3xl font-bold text-neutral-900">
+            Asambe
+          </Text>
+          <Text className="text-sm text-neutral-400 mt-0.5">
+            {profile?.city ?? 'Cape Town'}
+          </Text>
+        </View>
+        <Pressable
+          onPress={() => router.push('/settings')}
+          className="w-10 h-10 bg-white border border-neutral-200 rounded-full items-center justify-center"
+        >
+          <IconSymbol name="gearshape.fill" size={18} color="#44403c" />
+        </Pressable>
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e8572a" />
+        }
+      >
+        {/* Search bar */}
+        <View className="px-6 mb-4">
+          <SearchBar placeholder="Search activities, neighborhoods..." />
+        </View>
+
+        {/* Category chips */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerClassName="px-6 pb-4"
+        >
+          <Pressable
+            onPress={() => setSelectedCategory(null)}
+            className={`px-4 py-2.5 rounded-full mr-2 border ${
+              !selectedCategory
+                ? 'bg-neutral-900 border-neutral-900'
+                : 'bg-white border-neutral-200'
+            }`}
+          >
+            <Text className={`text-sm font-medium ${!selectedCategory ? 'text-white' : 'text-neutral-700'}`}>
+              All
+            </Text>
+          </Pressable>
+          {CATEGORIES.map(cat => (
+            <CategoryChip
+              key={cat.name}
+              icon={cat.icon}
+              label={cat.name}
+              selected={selectedCategory === cat.name}
+              onPress={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)}
+            />
+          ))}
+        </ScrollView>
+
+        {/* Happening this week - horizontal carousel */}
+        <View className="mb-6">
+          <View className="flex-row items-center justify-between px-6 mb-3">
+            <Text className="font-serif text-xl font-bold text-neutral-900">
+              Happening this week
+            </Text>
+            <Pressable className="flex-row items-center">
+              <Text className="text-sm font-medium text-primary-600 mr-0.5">See all</Text>
+              <IconSymbol name="chevron.right" size={14} color="#c3653c" />
+            </Pressable>
+          </View>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={thisWeek}
+            keyExtractor={item => item.id}
+            contentContainerClassName="px-6"
+            renderItem={({ item }) => (
+              <ActivityCard
+                variant="horizontal"
+                title={item.title}
+                category={item.category_name}
+                categoryIcon={item.category_icon}
+                neighborhood={item.neighborhood}
+                dateLabel={formatDate(item)}
+                posterName={item.poster_name}
+                trustScore={item.poster_trust_score}
+                companionCount={item.companion_count}
+                onPress={() => router.push(`/activity/${item.id}`)}
+              />
+            )}
+          />
+        </View>
+
+        {/* Near you - vertical list */}
+        <View className="px-6 mb-6">
+          <View className="flex-row items-center justify-between mb-3">
+            <Text className="font-serif text-xl font-bold text-neutral-900">
+              Near you
+            </Text>
+            <Pressable className="flex-row items-center">
+              <Text className="text-sm font-medium text-primary-600 mr-0.5">See all</Text>
+              <IconSymbol name="chevron.right" size={14} color="#c3653c" />
+            </Pressable>
+          </View>
+          {nearYou.map(item => (
+            <ActivityCard
+              key={item.id}
+              variant="vertical"
+              title={item.title}
+              category={item.category_name}
+              categoryIcon={item.category_icon}
+              neighborhood={item.neighborhood}
+              dateLabel={formatDate(item)}
+              posterName={item.poster_name}
+              trustScore={item.poster_trust_score}
+              companionCount={item.companion_count}
+              onPress={() => router.push(`/activity/${item.id}`)}
+            />
+          ))}
+        </View>
+
+        <View className="h-20" />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
