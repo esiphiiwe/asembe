@@ -11,8 +11,8 @@ import { AuthProvider, useAuth } from '@/lib/auth-context';
 
 function AuthGate() {
   const { session, isLoading, isOnboarded } = useAuth();
-  const segments = useSegments();
   const router = useRouter();
+  const segments = useSegments();
 
   useEffect(() => {
     if (isLoading) return;
