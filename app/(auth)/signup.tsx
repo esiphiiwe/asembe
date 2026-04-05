@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Text, View, ScrollView, Pressable, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
 import { FormInput } from '@/components/ui/form-input';
 import { AsambeButton } from '@/components/ui/asambe-button';
@@ -11,7 +13,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useBackNavigation } from '@/hooks/use-back-navigation';
 import { CATEGORIES, BIO_MAX_LENGTH } from '@/lib/constants';
 import { useAuth } from '@/lib/auth-context';
-import { getCategories, upsertPreference } from '@/services/profiles';
+import { getCategories, uploadProfilePhoto, upsertPreference } from '@/services/profiles';
 import type { Gender } from '@/types';
 
 const GENDERS = [
@@ -22,7 +24,8 @@ const GENDERS = [
 ] as const;
 
 export default function SignUpScreen() {
-  const { signUp, createProfile, user, profile } = useAuth();
+  const { signUp, createProfile, refreshProfile, user, profile } = useAuth();
+  const router = useRouter();
 
   const isCompletingProfile = !!user && !profile;
   const minimumStep = isCompletingProfile ? 2 : 1;
@@ -39,6 +42,7 @@ export default function SignUpScreen() {
   const [age, setAge] = useState('');
   const [city, setCity] = useState('');
   const [bio, setBio] = useState('');
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const handleBack = useBackNavigation({ fallbackHref: '/(auth)/landing' });
 
@@ -86,6 +90,26 @@ export default function SignUpScreen() {
     setStep(3);
   };
 
+  const handlePickProfilePhoto = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert('Permission needed', 'Allow photo library access to add a profile photo.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]?.uri) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  };
+
   const handleCreateAccount = async () => {
     if (selectedCategories.length === 0) {
       Alert.alert('Pick at least one', 'Select at least one activity category.');
@@ -95,9 +119,10 @@ export default function SignUpScreen() {
     setLoading(true);
     try {
       let accountUser = user;
+      let accountSession = null;
 
       if (!isCompletingProfile) {
-        const { user: createdUser, error: signUpError } = await signUp(email, password);
+        const { user: createdUser, session: createdSession, error: signUpError } = await signUp(email, password);
         if (signUpError) {
           Alert.alert('Sign up failed', signUpError.message);
           setLoading(false);
@@ -105,6 +130,16 @@ export default function SignUpScreen() {
         }
 
         accountUser = createdUser;
+        accountSession = createdSession;
+      }
+
+      if (!isCompletingProfile && accountUser && !accountSession) {
+        Alert.alert(
+          'Verify your email',
+          'We created your account, but you need to confirm your email before finishing your profile. After verifying, log in to continue.'
+        );
+        router.replace('/(auth)/login');
+        return;
       }
 
       if (!accountUser?.email) {
@@ -130,6 +165,20 @@ export default function SignUpScreen() {
         Alert.alert('Profile error', profileError.message);
         setLoading(false);
         return;
+      }
+
+      if (photoUri) {
+        try {
+          await uploadProfilePhoto(accountUser.id, photoUri);
+          await refreshProfile();
+        } catch (photoError) {
+          Alert.alert(
+            'Profile saved',
+            photoError instanceof Error
+              ? `${photoError.message} You can add your photo later from your profile.`
+              : 'Your profile was created, but the photo could not be uploaded. You can add it later.'
+          );
+        }
       }
 
       // Save category preferences using DB UUIDs
@@ -249,12 +298,27 @@ export default function SignUpScreen() {
                   : 'This is how companions will see you.'}
               </Text>
 
-              {/* Photo picker placeholder */}
               <View className="items-center mb-6">
-                <Pressable className="w-28 h-28 bg-neutral-100 rounded-full border-2 border-dashed border-neutral-300 items-center justify-center">
-                  <IconSymbol name="camera.fill" size={28} color="#a8a29e" />
-                  <Text className="text-xs text-neutral-400 mt-1">Add photo</Text>
+                <Pressable
+                  onPress={() => void handlePickProfilePhoto()}
+                  className="w-28 h-28 bg-neutral-100 rounded-full border-2 border-dashed border-neutral-300 items-center justify-center overflow-hidden"
+                >
+                  {photoUri ? (
+                    <Image
+                      source={photoUri}
+                      contentFit="cover"
+                      style={{ width: '100%', height: '100%' }}
+                    />
+                  ) : (
+                    <>
+                      <IconSymbol name="camera.fill" size={28} color="#a8a29e" />
+                      <Text className="text-xs text-neutral-400 mt-1">Add photo</Text>
+                    </>
+                  )}
                 </Pressable>
+                <Text className="text-xs text-neutral-400 mt-2">
+                  {photoUri ? 'Tap to change photo' : 'Optional, but recommended'}
+                </Text>
               </View>
 
               <FormInput

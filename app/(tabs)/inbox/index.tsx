@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Text, View, ScrollView, Pressable, RefreshControl, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { MatchCard } from '@/components/ui/match-card';
 import { ScreenState } from '@/components/ui/screen-state';
 import { useAuth } from '@/lib/auth-context';
@@ -54,6 +54,7 @@ function EmptyState({ tab }: { tab: Tab }) {
 
 export default function MatchInboxScreen() {
   const { user } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('pending');
   const [pendingRequests, setPendingRequests] = useState<PendingMatchRequestView[]>([]);
   const [matches, setMatches] = useState<MatchListItemView[]>([]);

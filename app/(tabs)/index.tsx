@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useDeferredValue } from 'react';
 import { Text, View, ScrollView, FlatList, Pressable, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { SearchBar } from '@/components/ui/search-bar';
 import { CategoryChip } from '@/components/ui/category-chip';
 import { ActivityCard } from '@/components/ui/activity-card';
@@ -14,6 +14,7 @@ import { getOpenActivities, type ActivityFeedItem } from '@/services/activities'
 
 export default function HomeScreen() {
   const { profile } = useAuth();
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -149,14 +150,10 @@ export default function HomeScreen() {
         </ScrollView>
 
         <View className="mb-6">
-          <View className="flex-row items-center justify-between px-6 mb-3">
+          <View className="px-6 mb-3">
             <Text className="font-serif text-xl font-bold text-neutral-900">
               Happening this week
             </Text>
-            <Pressable className="flex-row items-center">
-              <Text className="text-sm font-medium text-primary-600 mr-0.5">See all</Text>
-              <IconSymbol name="chevron.right" size={14} color="#c3653c" />
-            </Pressable>
           </View>
           {featuredActivities.length > 0 ? (
             <FlatList
@@ -204,14 +201,10 @@ export default function HomeScreen() {
         </View>
 
         <View className="px-6 mb-6">
-          <View className="flex-row items-center justify-between mb-3">
+          <View className="mb-3">
             <Text className="font-serif text-xl font-bold text-neutral-900">
               Near you
             </Text>
-            <Pressable className="flex-row items-center">
-              <Text className="text-sm font-medium text-primary-600 mr-0.5">See all</Text>
-              <IconSymbol name="chevron.right" size={14} color="#c3653c" />
-            </Pressable>
           </View>
           {nearbyActivities.length > 0 ? (
             nearbyActivities.map(item => (

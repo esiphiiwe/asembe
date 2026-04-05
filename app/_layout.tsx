@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack, router, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from 'react-native';
 import 'react-native-reanimated';
@@ -12,6 +12,7 @@ import { AuthProvider, useAuth } from '@/lib/auth-context';
 function AuthGate() {
   const { session, isLoading, isOnboarded } = useAuth();
   const segments = useSegments();
+  const router = useRouter();
 
   useEffect(() => {
     if (isLoading) return;
@@ -26,7 +27,7 @@ function AuthGate() {
     } else if (session && isOnboarded && inAuthGroup) {
       router.replace('/(tabs)');
     }
-  }, [isLoading, isOnboarded, segments, session]);
+  }, [isLoading, isOnboarded, router, segments, session]);
 
   if (isLoading) {
     return (
@@ -52,7 +53,6 @@ function RootNavigation() {
         <Stack.Screen name="review/[matchId]" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen name="chat" />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

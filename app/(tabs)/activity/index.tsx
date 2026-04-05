@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { FormInput } from '@/components/ui/form-input';
 import { AsambeButton } from '@/components/ui/asambe-button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -33,16 +33,42 @@ const DAY_MAP: Record<string, string> = {
   Sun: 'sunday',
 };
 const COMPANION_COUNTS = [1, 2, 3, 4] as const;
-const GENDER_PREFS = [
-  { label: 'Any', value: 'any' },
-  { label: 'Women only', value: 'women-only' },
-  { label: 'No preference', value: 'no-preference' },
-] as const;
 
 type Category = Database['public']['Tables']['categories']['Row'];
 
+function parseScheduledDateTime(date: string, time: string) {
+  const trimmedDate = date.trim();
+  const trimmedTime = time.trim();
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmedDate)) {
+    return null;
+  }
+
+  if (!/^\d{2}:\d{2}$/.test(trimmedTime)) {
+    return null;
+  }
+
+  const [year, month, day] = trimmedDate.split('-').map(Number);
+  const [hours, minutes] = trimmedTime.split(':').map(Number);
+  const scheduled = new Date(year, month - 1, day, hours, minutes, 0, 0);
+
+  if (
+    Number.isNaN(scheduled.getTime())
+    || scheduled.getFullYear() !== year
+    || scheduled.getMonth() !== month - 1
+    || scheduled.getDate() !== day
+    || scheduled.getHours() !== hours
+    || scheduled.getMinutes() !== minutes
+  ) {
+    return null;
+  }
+
+  return scheduled.toISOString();
+}
+
 export default function PostActivityScreen() {
   const { user, profile } = useAuth();
+  const router = useRouter();
 
   const [selectedCategory, setSelectedCategory] = useState('');
   const [customCategory, setCustomCategory] = useState('');
@@ -50,7 +76,6 @@ export default function PostActivityScreen() {
   const [description, setDescription] = useState('');
   const [neighborhood, setNeighborhood] = useState('');
   const [companionCount, setCompanionCount] = useState<number>(1);
-  const [genderPref, setGenderPref] = useState('any');
   const [isRecurring, setIsRecurring] = useState(false);
   const [selectedDay, setSelectedDay] = useState('');
   const [date, setDate] = useState('');
@@ -93,7 +118,6 @@ export default function PostActivityScreen() {
     setDescription('');
     setNeighborhood('');
     setCompanionCount(1);
-    setGenderPref('any');
     setIsRecurring(false);
     setSelectedDay('');
     setDate('');
@@ -130,6 +154,15 @@ export default function PostActivityScreen() {
       return;
     }
 
+    const scheduledDateTime = !isRecurring ? parseScheduledDateTime(date, time) : null;
+    if (!isRecurring && !scheduledDateTime) {
+      Alert.alert(
+        'Invalid schedule',
+        'Enter the date as YYYY-MM-DD and the time as HH:MM using the 24-hour clock.'
+      );
+      return;
+    }
+
     if (!user || !profile) {
       Alert.alert('Not signed in', 'Please sign in to post an activity.');
       return;
@@ -150,10 +183,10 @@ export default function PostActivityScreen() {
         custom_category_label: selectedCategory === 'other' ? customCategory.trim() : null,
         title: title.trim(),
         description: description.trim(),
-        date_time: !isRecurring ? new Date(`${date} ${time}`).toISOString() : null,
+        date_time: scheduledDateTime,
         recurrence_rule: isRecurring && selectedDay ? `weekly:${DAY_MAP[selectedDay]}` : null,
         neighborhood: neighborhood.trim(),
-        coordinates: { lat: 0, lng: 0 },
+        coordinates: null,
         city: profile.city,
         country: profile.country,
         companion_count: companionCount,
@@ -328,7 +361,8 @@ export default function PostActivityScreen() {
                   label="Date"
                   value={date}
                   onChangeText={setDate}
-                  placeholder="Apr 6, 2026"
+                  placeholder="2026-04-06"
+                  hint="Use YYYY-MM-DD"
                 />
               </View>
               <View className="flex-1">
@@ -336,7 +370,8 @@ export default function PostActivityScreen() {
                   label="Time"
                   value={time}
                   onChangeText={setTime}
-                  placeholder="2:00 PM"
+                  placeholder="14:00"
+                  hint="Use 24-hour HH:MM"
                 />
               </View>
             </View>
@@ -347,7 +382,7 @@ export default function PostActivityScreen() {
             value={neighborhood}
             onChangeText={setNeighborhood}
             placeholder="e.g. V&A Waterfront, Woodstock"
-            hint="Only the neighborhood is shown — never the exact address."
+            hint="Only the neighborhood is shown for now. Exact coordinates will be added when map selection is supported."
           />
 
           <Text className="text-sm font-medium text-neutral-700 mb-2">How many companions?</Text>
@@ -380,28 +415,9 @@ export default function PostActivityScreen() {
             ))}
           </View>
 
-          <Text className="text-sm font-medium text-neutral-700 mb-2">Companion gender preference</Text>
-          <View className="flex-row gap-2 mb-6">
-            {GENDER_PREFS.map(pref => (
-              <Pressable
-                key={pref.value}
-                onPress={() => setGenderPref(pref.value)}
-                className={`flex-1 py-3 rounded-xl border items-center ${
-                  genderPref === pref.value
-                    ? 'bg-primary-100 border-primary-500'
-                    : 'bg-white border-neutral-200'
-                }`}
-              >
-                <Text
-                  className={`text-sm font-medium ${
-                    genderPref === pref.value ? 'text-primary-800' : 'text-neutral-600'
-                  }`}
-                >
-                  {pref.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          <Text className="text-xs text-neutral-400 mb-6">
+            Companion filtering will be added once activity-level preferences are supported in the database.
+          </Text>
 
           <View className="h-8" />
         </ScrollView>

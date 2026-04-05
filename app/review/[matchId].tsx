@@ -36,6 +36,16 @@ export default function ReviewScreen() {
   });
 
   const handleSubmit = async () => {
+    if (!user) {
+      Alert.alert('Not signed in', 'Please sign in to submit a review.');
+      return;
+    }
+
+    if (!matchId || !companionId) {
+      Alert.alert('Review unavailable', 'This review is missing required details. Please return to your matches and try again.');
+      return;
+    }
+
     if (rating === 0) {
       Alert.alert('Rating required', 'Please select a star rating before submitting.');
       return;
@@ -48,17 +58,15 @@ export default function ReviewScreen() {
 
     setSubmitting(true);
     try {
-      if (user && companionId) {
-        await createReview({
-          matchId: matchId!,
-          reviewerId: user.id,
-          revieweeId: companionId,
-          rating,
-          comment: comment.trim() || undefined,
-          flagged,
-          flagReason: flagged ? flagReason.trim() : undefined,
-        });
-      }
+      await createReview({
+        matchId,
+        reviewerId: user.id,
+        revieweeId: companionId,
+        rating,
+        comment: comment.trim() || undefined,
+        flagged,
+        flagReason: flagged ? flagReason.trim() : undefined,
+      });
       setSubmitted(true);
     } catch (err: any) {
       Alert.alert('Error', err.message ?? 'Could not submit review. Please try again.');

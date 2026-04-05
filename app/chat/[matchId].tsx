@@ -32,6 +32,7 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [match, setMatch] = useState<MatchDetailView | null>(null);
   const [error, setError] = useState<unknown>(null);
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(true);
   const flatListRef = useRef<FlatList>(null);
   const handleBack = useBackNavigation({
     fallbackHref: '/(tabs)/inbox',
@@ -71,16 +72,28 @@ export default function ChatScreen() {
   useEffect(() => {
     if (!matchId || !user) return;
 
-    const unsubscribe = subscribeToMessages(matchId, user.id, newMessage => {
-      setMessages(prev =>
-        prev.some(message => message.id === newMessage.id)
-          ? prev
-          : [...prev, newMessage]
-      );
-    });
+    const unsubscribe = subscribeToMessages(
+      matchId,
+      user.id,
+      newMessage => {
+        setMessages(prev =>
+          prev.some(message => message.id === newMessage.id)
+            ? prev
+            : [...prev, newMessage]
+        );
+      },
+      status => {
+        const connected = status === 'SUBSCRIBED' || status === 'CLOSED';
+        setIsRealtimeConnected(connected);
+
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          void loadMessages();
+        }
+      }
+    );
 
     return unsubscribe;
-  }, [matchId, user]);
+  }, [loadMessages, matchId, user]);
 
   const handleSend = async () => {
     if (!text.trim() || !user || !matchId) return;
@@ -155,12 +168,6 @@ export default function ChatScreen() {
           </View>
         </View>
 
-        <Pressable className="w-9 h-9 bg-red-50 rounded-full items-center justify-center mr-1">
-          <IconSymbol name="exclamationmark.triangle" size={16} color="#dc2626" />
-        </Pressable>
-        <Pressable className="w-9 h-9 items-center justify-center rounded-full">
-          <IconSymbol name="ellipsis" size={20} color="#44403c" />
-        </Pressable>
       </View>
 
       <KeyboardAvoidingView
@@ -174,6 +181,14 @@ export default function ChatScreen() {
             This conversation expires 48h after the activity unless you both choose to keep it open.
           </Text>
         </View>
+        {!isRealtimeConnected ? (
+          <View className="mx-4 mt-2 mb-1 bg-neutral-100 rounded-xl px-4 py-2.5 flex-row items-center">
+            <IconSymbol name="exclamationmark.triangle" size={14} color="#78716c" />
+            <Text className="text-xs text-neutral-600 ml-2 flex-1">
+              Live updates are reconnecting. New messages may appear after a refresh.
+            </Text>
+          </View>
+        ) : null}
 
         <FlatList
           ref={flatListRef}

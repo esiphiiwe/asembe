@@ -100,10 +100,12 @@ export async function getCompletedMatchesPendingReview(userId: string) {
 
   if (error) throw error;
 
-  const { data: existingReviews } = await supabase
+  const { data: existingReviews, error: existingReviewsError } = await supabase
     .from('reviews')
     .select('match_id')
     .eq('reviewer_id', userId);
+
+  if (existingReviewsError) throw existingReviewsError;
 
   const reviewedMatchIds = new Set((existingReviews ?? []).map(r => r.match_id));
 

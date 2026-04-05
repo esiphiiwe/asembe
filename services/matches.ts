@@ -90,7 +90,7 @@ export async function getPendingRequestsForUser(userId: string) {
     .select(`
       *,
       activities!match_requests_activity_id_fkey (
-        id, title, neighborhood, date_time, companion_count,
+        id, title, neighborhood, date_time, recurrence_rule, companion_count,
         categories!activities_category_id_fkey ( name, icon )
       ),
       profiles!match_requests_requester_id_fkey ( name, trust_score, profile_photo )
@@ -163,6 +163,22 @@ export async function respondToRequest(
       });
 
     if (matchError) throw matchError;
+
+    const { error: activityError } = await supabase
+      .from('activities')
+      .update({ status: 'matched' })
+      .eq('id', activityId);
+
+    if (activityError) throw activityError;
+
+    const { error: declineOthersError } = await supabase
+      .from('match_requests')
+      .update({ status: 'declined' })
+      .eq('activity_id', activityId)
+      .eq('status', 'pending')
+      .neq('id', requestId);
+
+    if (declineOthersError) throw declineOthersError;
   }
 }
 

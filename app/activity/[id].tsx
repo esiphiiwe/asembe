@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { Text, View, ScrollView, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { Text, View, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { NavIconButton } from '@/components/ui/nav-icon-button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { AsambeButton } from '@/components/ui/asambe-button';
@@ -107,7 +107,7 @@ export default function ActivityDetailScreen() {
         <View className="relative">
           <View className="w-full h-72 bg-neutral-200 items-center justify-center">
             <Text className="text-7xl">{activity.categoryIcon}</Text>
-            <Text className="text-sm text-neutral-400 mt-2">Activity photo</Text>
+            <Text className="text-sm text-neutral-400 mt-2">Photo uploads coming soon</Text>
           </View>
 
           <View className="absolute top-12 left-0 right-0 flex-row justify-between px-4">
@@ -116,14 +116,6 @@ export default function ActivityDetailScreen() {
               onPress={handleBack}
               variant="overlay"
             />
-            <View className="flex-row gap-2">
-              <Pressable className="w-10 h-10 bg-white/90 rounded-full items-center justify-center shadow-sm">
-                <IconSymbol name="square.and.arrow.up" size={18} color="#1c1917" />
-              </Pressable>
-              <Pressable className="w-10 h-10 bg-white/90 rounded-full items-center justify-center shadow-sm">
-                <IconSymbol name="heart" size={18} color="#1c1917" />
-              </Pressable>
-            </View>
           </View>
         </View>
 
@@ -215,14 +207,9 @@ export default function ActivityDetailScreen() {
                 {poster.verified ? 'Verified profile' : 'Profile verification pending'}
               </Text>
             </View>
-            <View className="flex-row items-center mb-2.5">
-              <IconSymbol name="envelope.fill" size={16} color="#78716c" />
-              <Text className="text-sm text-neutral-600 ml-2">Email verified</Text>
-            </View>
-            <View className="flex-row items-center">
-              <IconSymbol name="hand.raised.fill" size={16} color="#78716c" />
-              <Text className="text-sm text-neutral-600 ml-2">In-app SOS available during activity</Text>
-            </View>
+            <Text className="text-sm text-neutral-500 leading-5">
+              Neighborhood details stay broad until a match is confirmed.
+            </Text>
           </View>
         </View>
       </ScrollView>

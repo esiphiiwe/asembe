@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Text, View, ScrollView, Pressable, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { StatBadge } from '@/components/ui/stat-badge';
 import { ActivityCard } from '@/components/ui/activity-card';
@@ -14,6 +15,7 @@ import { getUserPreferences, type UserPreferenceView } from '@/services/profiles
 
 export default function ProfileScreen() {
   const { user: authUser, profile, refreshProfile, isLoading: authLoading, error: authError } = useAuth();
+  const router = useRouter();
 
   const [myActivities, setMyActivities] = useState<UserActivityView[]>([]);
   const [myReviews, setMyReviews] = useState<UserReviewView[]>([]);
@@ -133,6 +135,7 @@ export default function ProfileScreen() {
   const city = profile.city;
   const country = profile.country;
   const bio = profile.bio;
+  const profilePhoto = profile.profile_photo;
 
   return (
     <SafeAreaView className="flex-1 bg-neutral-50" edges={['top']}>
@@ -161,11 +164,19 @@ export default function ProfileScreen() {
 
         <View className="items-center px-6 pt-4 pb-6">
           <View className="relative">
-            <View className="w-24 h-24 bg-primary-200 rounded-full items-center justify-center">
-              <Text className="text-3xl font-bold text-primary-800">
-                {userName.charAt(0)}
-              </Text>
-            </View>
+            {profilePhoto ? (
+              <Image
+                source={profilePhoto}
+                contentFit="cover"
+                style={{ width: 96, height: 96, borderRadius: 48 }}
+              />
+            ) : (
+              <View className="w-24 h-24 bg-primary-200 rounded-full items-center justify-center">
+                <Text className="text-3xl font-bold text-primary-800">
+                  {userName.charAt(0)}
+                </Text>
+              </View>
+            )}
             {verified ? (
               <View className="absolute bottom-0 right-0 w-7 h-7 bg-green-500 rounded-full items-center justify-center border-2 border-neutral-50">
                 <IconSymbol name="checkmark.circle.fill" size={14} color="#fff" />
@@ -194,7 +205,15 @@ export default function ProfileScreen() {
         ) : null}
 
         <View className="px-6 mb-6">
-          <Pressable className="w-full border border-neutral-300 rounded-xl py-3 bg-white items-center">
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/(tabs)/profile/edit',
+                params: { returnTo: '/(tabs)/profile' },
+              })
+            }
+            className="w-full border border-neutral-300 rounded-xl py-3 bg-white items-center"
+          >
             <Text className="text-base font-semibold text-neutral-800">Edit profile</Text>
           </Pressable>
         </View>

@@ -51,7 +51,8 @@ export async function sendMessage(matchId: string, senderId: string, text: strin
 export function subscribeToMessages(
   matchId: string,
   currentUserId: string,
-  onMessage: (message: ChatMessageView) => void
+  onMessage: (message: ChatMessageView) => void,
+  onStatusChange?: (status: string) => void
 ) {
   const supabase = getSupabaseClient();
   const channel = supabase
@@ -68,7 +69,9 @@ export function subscribeToMessages(
         onMessage(mapChatMessage(payload.new as any, currentUserId));
       }
     )
-    .subscribe();
+    .subscribe((status) => {
+      onStatusChange?.(status);
+    });
 
   return () => {
     supabase.removeChannel(channel);

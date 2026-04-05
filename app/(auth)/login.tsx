@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Text, View, Pressable, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link, router } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { FormInput } from '@/components/ui/form-input';
 import { AsambeButton } from '@/components/ui/asambe-button';
 import { NavIconButton } from '@/components/ui/nav-icon-button';
@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth-context';
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);

@@ -34,6 +34,7 @@ const MAPPING = {
   'paperplane': 'send',
   'camera.fill': 'camera-alt',
   'checkmark.circle.fill': 'check-circle',
+  'checkmark': 'check',
   'bell.fill': 'notifications',
   'lock.fill': 'lock',
   'phone.fill': 'phone',

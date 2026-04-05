@@ -1,22 +1,60 @@
-import { useState } from 'react';
-import { Text, View, ScrollView, Pressable, Alert } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Text, View, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { NavIconButton } from '@/components/ui/nav-icon-button';
 import { SettingsRow } from '@/components/ui/settings-row';
 import { useBackNavigation } from '@/hooks/use-back-navigation';
 import { useAuth } from '@/lib/auth-context';
-import { SUBSCRIPTION_TIERS } from '@/lib/constants';
+
+const PUSH_NOTIFICATIONS_KEY = 'settings.pushNotifications';
+const EMAIL_NOTIFICATIONS_KEY = 'settings.emailNotifications';
 
 export default function SettingsScreen() {
   const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
   const { profile, signOut } = useAuth();
+  const router = useRouter();
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(false);
+  const [hasLoadedNotificationPreferences, setHasLoadedNotificationPreferences] = useState(false);
   const handleBack = useBackNavigation({
     fallbackHref: '/(tabs)/profile',
     returnTo,
   });
+
+  useEffect(() => {
+    void Promise.all([
+      SecureStore.getItemAsync(PUSH_NOTIFICATIONS_KEY),
+      SecureStore.getItemAsync(EMAIL_NOTIFICATIONS_KEY),
+    ]).then(([storedPushNotifications, storedEmailNotifications]) => {
+      if (storedPushNotifications !== null) {
+        setPushNotifications(storedPushNotifications === 'true');
+      }
+
+      if (storedEmailNotifications !== null) {
+        setEmailNotifications(storedEmailNotifications === 'true');
+      }
+    }).finally(() => {
+      setHasLoadedNotificationPreferences(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedNotificationPreferences) {
+      return;
+    }
+
+    void SecureStore.setItemAsync(PUSH_NOTIFICATIONS_KEY, String(pushNotifications));
+  }, [hasLoadedNotificationPreferences, pushNotifications]);
+
+  useEffect(() => {
+    if (!hasLoadedNotificationPreferences) {
+      return;
+    }
+
+    void SecureStore.setItemAsync(EMAIL_NOTIFICATIONS_KEY, String(emailNotifications));
+  }, [emailNotifications, hasLoadedNotificationPreferences]);
 
   const handleLogout = () => {
     Alert.alert('Log out', 'Are you sure you want to log out?', [
@@ -63,12 +101,6 @@ export default function SettingsScreen() {
               label="Phone"
               value={profile?.phone ?? 'Not set'}
             />
-            <View className="h-px bg-neutral-50 mx-4" />
-            <SettingsRow
-              icon="lock.fill"
-              label="Password"
-              value="Change"
-            />
           </View>
         </View>
 
@@ -103,63 +135,11 @@ export default function SettingsScreen() {
           </Text>
           <View className="mx-4 bg-white rounded-2xl border border-neutral-100 overflow-hidden">
             <SettingsRow
-              icon="hand.raised.fill"
-              label="Emergency contacts"
-              value="3 contacts"
-            />
-            <View className="h-px bg-neutral-50 mx-4" />
-            <SettingsRow
               icon="checkmark.circle.fill"
               label="Photo verification"
               value={profile?.verified ? 'Verified' : 'Not verified'}
               iconColor={profile?.verified ? '#16a34a' : undefined}
             />
-            <View className="h-px bg-neutral-50 mx-4" />
-            <SettingsRow
-              icon="flag.fill"
-              label="Blocked users"
-              value="0"
-            />
-          </View>
-        </View>
-
-        {/* Subscription */}
-        <View className="mt-6">
-          <Text className="px-6 text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1">
-            Subscription
-          </Text>
-          <View className="mx-4 bg-white rounded-2xl border border-neutral-100 p-4">
-            <View className="flex-row items-center justify-between mb-3">
-              <View>
-                <Text className="text-base font-semibold text-neutral-900">Free Plan</Text>
-                <Text className="text-sm text-neutral-500 mt-0.5">
-                  {SUBSCRIPTION_TIERS.free.matchRequestsPerMonth} match requests/month
-                </Text>
-              </View>
-              <View className="bg-neutral-100 rounded-full px-3 py-1">
-                <Text className="text-xs font-medium text-neutral-600">Current</Text>
-              </View>
-            </View>
-            <Pressable className="bg-accent rounded-xl py-3 items-center">
-              <Text className="text-white font-semibold text-sm">Upgrade to Standard — €9.99/mo</Text>
-            </Pressable>
-            <Text className="text-xs text-neutral-400 mt-2 text-center">
-              Or become a Founding Member at €49/year
-            </Text>
-          </View>
-        </View>
-
-        {/* About */}
-        <View className="mt-6">
-          <Text className="px-6 text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1">
-            About
-          </Text>
-          <View className="mx-4 bg-white rounded-2xl border border-neutral-100 overflow-hidden">
-            <SettingsRow label="Terms of Service" />
-            <View className="h-px bg-neutral-50 mx-4" />
-            <SettingsRow label="Privacy Policy" />
-            <View className="h-px bg-neutral-50 mx-4" />
-            <SettingsRow label="Help & Support" />
           </View>
         </View>
 
@@ -170,13 +150,6 @@ export default function SettingsScreen() {
               label="Log out"
               textColor="text-red-600"
               onPress={handleLogout}
-            />
-            <View className="h-px bg-neutral-50 mx-4" />
-            <SettingsRow
-              icon="trash.fill"
-              label="Delete account"
-              textColor="text-red-600"
-              iconColor="#dc2626"
             />
           </View>
         </View>

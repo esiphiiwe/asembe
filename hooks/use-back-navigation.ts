@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Href, router } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 
 type BackNavigationOptions = {
   fallbackHref: Href;
@@ -17,6 +17,8 @@ function normalizeHref(value?: string | string[]): Href | null {
 }
 
 export function useBackNavigation({ fallbackHref, returnTo }: BackNavigationOptions) {
+  const router = useRouter();
+
   return useCallback(() => {
     if (router.canGoBack()) {
       router.back();
@@ -31,5 +33,5 @@ export function useBackNavigation({ fallbackHref, returnTo }: BackNavigationOpti
     }
 
     router.replace(fallbackHref);
-  }, [fallbackHref, returnTo]);
+  }, [fallbackHref, returnTo, router]);
 }

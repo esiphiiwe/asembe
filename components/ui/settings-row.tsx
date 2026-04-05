@@ -48,7 +48,9 @@ export function SettingsRow(props: SettingsRowProps) {
           {props.value && (
             <Text className="text-sm text-neutral-400 mr-2">{props.value}</Text>
           )}
-          <IconSymbol name="chevron.right" size={16} color="#a8a29e" />
+          {props.onPress ? (
+            <IconSymbol name="chevron.right" size={16} color="#a8a29e" />
+          ) : null}
         </View>
       )}
     </View>
@@ -58,9 +60,5 @@ export function SettingsRow(props: SettingsRowProps) {
     return content;
   }
 
-  return (
-    <Pressable onPress={(props as SettingsRowNavProps).onPress}>
-      {content}
-    </Pressable>
-  );
+  return props.onPress ? <Pressable onPress={props.onPress}>{content}</Pressable> : content;
 }

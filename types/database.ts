@@ -63,7 +63,7 @@ export type Database = {
           recurrence_rule: string | null;
           recurrence_end_date: string | null;
           neighborhood: string;
-          coordinates: { lat: number; lng: number };
+          coordinates: { lat: number; lng: number } | null;
           city: string;
           country: string;
           companion_count: number;
@@ -81,7 +81,7 @@ export type Database = {
           recurrence_rule?: string | null;
           recurrence_end_date?: string | null;
           neighborhood: string;
-          coordinates: { lat: number; lng: number };
+          coordinates?: { lat: number; lng: number } | null;
           city: string;
           country: string;
           companion_count: number;

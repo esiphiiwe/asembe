@@ -32,16 +32,82 @@ const supabaseUrl = hasValidSupabaseUrl
   ? rawSupabaseUrl
   : 'https://placeholder.supabase.co';
 const supabaseKey = supabaseAnonKey || 'placeholder-key';
+const SECURE_STORE_CHUNK_SIZE = 1800;
+const SECURE_STORE_CHUNK_SUFFIX = '__chunk_count';
+
+function getChunkCountKey(key: string) {
+  return `${key}${SECURE_STORE_CHUNK_SUFFIX}`;
+}
 
 const SecureStoreAdapter = {
-  getItem: (key: string) => {
-    return SecureStore.getItemAsync(key);
+  async getItem(key: string) {
+    const chunkCountValue = await SecureStore.getItemAsync(getChunkCountKey(key));
+
+    if (!chunkCountValue) {
+      return SecureStore.getItemAsync(key);
+    }
+
+    const chunkCount = Number(chunkCountValue);
+
+    if (!Number.isFinite(chunkCount) || chunkCount <= 0) {
+      return SecureStore.getItemAsync(key);
+    }
+
+    const chunks = await Promise.all(
+      Array.from({ length: chunkCount }, (_, index) =>
+        SecureStore.getItemAsync(`${key}_${index}`)
+      )
+    );
+
+    if (chunks.some(chunk => chunk == null)) {
+      return null;
+    }
+
+    return chunks.join('');
   },
-  setItem: (key: string, value: string) => {
-    return SecureStore.setItemAsync(key, value);
+  async setItem(key: string, value: string) {
+    const existingChunkCountValue = await SecureStore.getItemAsync(getChunkCountKey(key));
+    const existingChunkCount = existingChunkCountValue ? Number(existingChunkCountValue) : 0;
+
+    if (value.length <= SECURE_STORE_CHUNK_SIZE) {
+      await SecureStore.setItemAsync(key, value);
+
+      if (existingChunkCount > 0) {
+        await Promise.all([
+          SecureStore.deleteItemAsync(getChunkCountKey(key)),
+          ...Array.from({ length: existingChunkCount }, (_, index) =>
+            SecureStore.deleteItemAsync(`${key}_${index}`)
+          ),
+        ]);
+      }
+
+      return;
+    }
+
+    const chunks = value.match(new RegExp(`.{1,${SECURE_STORE_CHUNK_SIZE}}`, 'g')) ?? [];
+
+    await SecureStore.deleteItemAsync(key);
+    await Promise.all([
+      SecureStore.setItemAsync(getChunkCountKey(key), String(chunks.length)),
+      ...chunks.map((chunk, index) =>
+        SecureStore.setItemAsync(`${key}_${index}`, chunk)
+      ),
+      ...Array.from({ length: existingChunkCount }, (_, index) =>
+        index >= chunks.length ? SecureStore.deleteItemAsync(`${key}_${index}`) : Promise.resolve()
+      ),
+    ]);
   },
-  removeItem: (key: string) => {
-    return SecureStore.deleteItemAsync(key);
+  async removeItem(key: string) {
+    const chunkCountValue = await SecureStore.getItemAsync(getChunkCountKey(key));
+    const chunkCount = chunkCountValue ? Number(chunkCountValue) : 0;
+
+    await Promise.all([
+      SecureStore.deleteItemAsync(key),
+      SecureStore.deleteItemAsync(getChunkCountKey(key)),
+      ...Array.from({ length: chunkCount }, (_, index) =>
+        SecureStore.deleteItemAsync(`${key}_${index}`)
+      ),
+    ]);
   },
 };
 
