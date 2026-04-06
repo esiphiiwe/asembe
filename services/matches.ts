@@ -191,19 +191,31 @@ export async function getPendingRequestsForUser(userId: string) {
     return [];
   }
 
-  const { data, error } = await supabase
-    .from('match_requests')
-    .select(`
+  const selectQuery = `
       *,
       activities!match_requests_activity_id_fkey (
         id, title, neighborhood, date_time, recurrence_rule, companion_count,
         categories!activities_category_id_fkey ( name, icon )
       ),
       profiles!match_requests_requester_id_fkey ( name, trust_score, profile_photo )
-    `)
+    `;
+
+  let { data, error } = await supabase
+    .from('match_requests')
+    .select(selectQuery)
     .eq('status', 'pending')
     .in('activity_id', activityIds)
     .order('score', { ascending: false, nullsFirst: false });
+
+  // If the score column hasn't been migrated yet, fall back to created_at ordering.
+  if (error?.message?.includes('score')) {
+    ({ data, error } = await supabase
+      .from('match_requests')
+      .select(selectQuery)
+      .eq('status', 'pending')
+      .in('activity_id', activityIds)
+      .order('created_at', { ascending: false }));
+  }
 
   if (error) throw error;
 
