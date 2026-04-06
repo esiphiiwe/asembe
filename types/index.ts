@@ -1,5 +1,8 @@
 export type Gender = 'woman' | 'man' | 'non-binary' | 'prefer-not-to-say';
 
+export type SubscriptionTier = 'free' | 'standard' | 'premium' | 'founding';
+export type SubscriptionStatus = 'active' | 'cancelled' | 'past_due';
+
 export type CategoryName =
   | 'hiking'
   | 'museums'

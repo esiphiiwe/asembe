@@ -7,14 +7,25 @@ import { NavIconButton } from '@/components/ui/nav-icon-button';
 import { SettingsRow } from '@/components/ui/settings-row';
 import { useBackNavigation } from '@/hooks/use-back-navigation';
 import { useAuth } from '@/lib/auth-context';
+import { useSubscription } from '@/hooks/use-subscription';
 
 const PUSH_NOTIFICATIONS_KEY = 'settings.pushNotifications';
 const EMAIL_NOTIFICATIONS_KEY = 'settings.emailNotifications';
+
+function tierLabel(tier: string): string {
+  switch (tier) {
+    case 'standard': return 'Standard';
+    case 'premium': return 'Premium';
+    case 'founding': return 'Founding Member';
+    default: return 'Free';
+  }
+}
 
 export default function SettingsScreen() {
   const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
   const { profile, signOut } = useAuth();
   const router = useRouter();
+  const { tier } = useSubscription();
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [hasLoadedNotificationPreferences, setHasLoadedNotificationPreferences] = useState(false);
@@ -175,6 +186,27 @@ export default function SettingsScreen() {
               onPress={() =>
                 router.push({
                   pathname: '/blocked-users',
+                  params: { returnTo: '/settings' },
+                })
+              }
+            />
+          </View>
+        </View>
+
+        {/* Subscription */}
+        <View className="mt-6">
+          <Text className="px-6 text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1">
+            Subscription
+          </Text>
+          <View className="mx-4 bg-white rounded-2xl border border-neutral-100 overflow-hidden">
+            <SettingsRow
+              icon="crown.fill"
+              label="Plan"
+              value={tierLabel(tier)}
+              type="nav"
+              onPress={() =>
+                router.push({
+                  pathname: '/subscription',
                   params: { returnTo: '/settings' },
                 })
               }

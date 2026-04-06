@@ -1,5 +1,6 @@
 import { formatActivitySchedule } from '@/lib/activity-utils';
 import { getSupabaseClient } from '@/lib/supabase';
+import { canSendMatchRequest } from '@/services/subscriptions';
 import type { Database } from '@/types/database';
 
 type MatchRow = Database['public']['Tables']['matches']['Row'];
@@ -62,8 +63,9 @@ function mapMatchListItem(match: any, currentUserId: string): MatchListItemView 
 export async function createMatchRequest(activityId: string, requesterId: string) {
   const supabase = getSupabaseClient();
 
-  const [{ data: activity, error: activityError }, { data: requester, error: requesterError }] =
+  const [requestCheck, { data: activity, error: activityError }, { data: requester, error: requesterError }] =
     await Promise.all([
+      canSendMatchRequest(requesterId),
       supabase
         .from('activities')
         .select('women_only')
@@ -75,6 +77,10 @@ export async function createMatchRequest(activityId: string, requesterId: string
         .eq('id', requesterId)
         .single(),
     ]);
+
+  if (!requestCheck.allowed) {
+    throw new Error(requestCheck.reason ?? 'You have reached your monthly match request limit.');
+  }
 
   if (activityError) throw activityError;
   if (requesterError) throw requesterError;

@@ -274,6 +274,35 @@ export type Database = {
         Relationships: [];
       };
     };
+      subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          tier: 'free' | 'standard' | 'premium' | 'founding';
+          status: 'active' | 'cancelled' | 'past_due';
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
+          period_start: string | null;
+          period_end: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          tier?: 'free' | 'standard' | 'premium' | 'founding';
+          status?: 'active' | 'cancelled' | 'past_due';
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          period_start?: string | null;
+          period_end?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['subscriptions']['Insert']>;
+        Relationships: [];
+      };
+    };
     Views: Record<string, never>;
     Functions: Record<string, never>;
     Enums: {
@@ -283,6 +312,8 @@ export type Database = {
       activity_status: 'open' | 'matched' | 'closed' | 'expired';
       match_request_status: 'pending' | 'accepted' | 'declined';
       match_status: 'confirmed' | 'completed' | 'cancelled';
+      subscription_tier: 'free' | 'standard' | 'premium' | 'founding';
+      subscription_status: 'active' | 'cancelled' | 'past_due';
     };
   };
 };

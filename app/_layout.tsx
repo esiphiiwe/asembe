@@ -47,6 +47,7 @@ function RootNavigation() {
         <Stack.Screen name="review/[matchId]" options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen name="chat/[matchId]" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
+        <Stack.Screen name="subscription" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

@@ -1,5 +1,14 @@
 import { useState, useEffect, useCallback, useDeferredValue } from 'react';
-import { Text, View, ScrollView, FlatList, Pressable, RefreshControl, ActivityIndicator } from 'react-native';
+import {
+  Text,
+  View,
+  ScrollView,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  ActivityIndicator,
+  Modal,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { SearchBar } from '@/components/ui/search-bar';
@@ -9,18 +18,48 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ScreenState } from '@/components/ui/screen-state';
 import { CATEGORIES } from '@/lib/constants';
 import { useAuth } from '@/lib/auth-context';
+import { useSubscription } from '@/hooks/use-subscription';
 import { getErrorMessage, isConfigError } from '@/lib/errors';
 import { getOpenActivities, type ActivityFeedItem } from '@/services/activities';
+import type { SkillLevel } from '@/types/index';
+
+const SKILL_LEVELS: { value: SkillLevel; label: string }[] = [
+  { value: 'beginner', label: 'Beginner' },
+  { value: 'intermediate', label: 'Intermediate' },
+  { value: 'experienced', label: 'Experienced' },
+];
+
+interface AdvancedFilters {
+  minAge: number | null;
+  maxAge: number | null;
+  skillLevel: SkillLevel | null;
+}
+
+const DEFAULT_ADVANCED_FILTERS: AdvancedFilters = {
+  minAge: null,
+  maxAge: null,
+  skillLevel: null,
+};
+
+function hasActiveAdvancedFilters(f: AdvancedFilters): boolean {
+  return f.minAge !== null || f.maxAge !== null || f.skillLevel !== null;
+}
 
 export default function HomeScreen() {
   const { profile } = useAuth();
   const router = useRouter();
+  const { canAdvancedFilters } = useSubscription();
+
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [activities, setActivities] = useState<ActivityFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(DEFAULT_ADVANCED_FILTERS);
+  const [pendingFilters, setPendingFilters] = useState<AdvancedFilters>(DEFAULT_ADVANCED_FILTERS);
+
   const deferredSearchText = useDeferredValue(searchText.trim());
 
   const loadActivities = useCallback(async () => {
@@ -33,9 +72,9 @@ export default function HomeScreen() {
         search: deferredSearchText || undefined,
       });
       setActivities(data);
-    } catch (error) {
+    } catch (err) {
       setActivities([]);
-      setError(error);
+      setError(err);
     } finally {
       setLoading(false);
     }
@@ -51,8 +90,37 @@ export default function HomeScreen() {
     setRefreshing(false);
   };
 
-  const featuredActivities = activities.slice(0, 4);
-  const nearbyActivities = activities.length > 4 ? activities.slice(4) : activities;
+  const openFilters = () => {
+    if (!canAdvancedFilters) {
+      router.push('/subscription');
+      return;
+    }
+    setPendingFilters(advancedFilters);
+    setShowFilterSheet(true);
+  };
+
+  const applyFilters = () => {
+    setAdvancedFilters(pendingFilters);
+    setShowFilterSheet(false);
+  };
+
+  const clearFilters = () => {
+    setPendingFilters(DEFAULT_ADVANCED_FILTERS);
+    setAdvancedFilters(DEFAULT_ADVANCED_FILTERS);
+    setShowFilterSheet(false);
+  };
+
+  const filterActive = hasActiveAdvancedFilters(advancedFilters);
+
+  const filteredActivities = activities.filter(item => {
+    if (advancedFilters.skillLevel) {
+      return true;
+    }
+    return true;
+  });
+
+  const featuredActivities = filteredActivities.slice(0, 4);
+  const nearbyActivities = filteredActivities.length > 4 ? filteredActivities.slice(4) : filteredActivities;
 
   if (loading) {
     return (
@@ -113,12 +181,35 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e8572a" />
         }
       >
-        <View className="px-6 mb-4">
-          <SearchBar
-            value={searchText}
-            onChangeText={setSearchText}
-            placeholder="Search activities, neighborhoods..."
-          />
+        <View className="px-6 mb-3">
+          <View className="flex-row gap-2 items-center">
+            <View className="flex-1">
+              <SearchBar
+                value={searchText}
+                onChangeText={setSearchText}
+                placeholder="Search activities, neighborhoods..."
+              />
+            </View>
+            <Pressable
+              onPress={openFilters}
+              className={`w-11 h-11 rounded-xl border items-center justify-center ${
+                filterActive
+                  ? 'bg-primary-500 border-primary-500'
+                  : 'bg-white border-neutral-200'
+              }`}
+            >
+              <IconSymbol
+                name="slider.horizontal.3"
+                size={18}
+                color={filterActive ? '#fff' : '#78716c'}
+              />
+              {!canAdvancedFilters ? (
+                <View className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 rounded-full items-center justify-center">
+                  <IconSymbol name="lock.fill" size={8} color="#fff" />
+                </View>
+              ) : null}
+            </Pressable>
+          </View>
         </View>
 
         <ScrollView
@@ -239,6 +330,134 @@ export default function HomeScreen() {
 
         <View className="h-20" />
       </ScrollView>
+
+      {/* Advanced filters bottom sheet */}
+      <Modal
+        visible={showFilterSheet}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowFilterSheet(false)}
+      >
+        <Pressable
+          className="flex-1 bg-black/40"
+          onPress={() => setShowFilterSheet(false)}
+        />
+        <View className="bg-white rounded-t-3xl px-6 pt-5 pb-10">
+          <View className="flex-row items-center justify-between mb-5">
+            <Text className="font-serif text-xl font-bold text-neutral-900">Filters</Text>
+            <Pressable onPress={() => setShowFilterSheet(false)}>
+              <IconSymbol name="xmark.circle.fill" size={24} color="#a8a29e" />
+            </Pressable>
+          </View>
+
+          {/* Skill level filter */}
+          <Text className="text-sm font-semibold text-neutral-700 mb-2">Skill level</Text>
+          <View className="flex-row gap-2 mb-5">
+            {SKILL_LEVELS.map(({ value, label }) => (
+              <Pressable
+                key={value}
+                onPress={() =>
+                  setPendingFilters(prev => ({
+                    ...prev,
+                    skillLevel: prev.skillLevel === value ? null : value,
+                  }))
+                }
+                className={`flex-1 py-2.5 rounded-xl border items-center ${
+                  pendingFilters.skillLevel === value
+                    ? 'bg-primary-100 border-primary-500'
+                    : 'bg-neutral-50 border-neutral-200'
+                }`}
+              >
+                <Text
+                  className={`text-sm font-medium ${
+                    pendingFilters.skillLevel === value ? 'text-primary-800' : 'text-neutral-600'
+                  }`}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          {/* Age range filter */}
+          <Text className="text-sm font-semibold text-neutral-700 mb-2">Age range</Text>
+          <View className="flex-row gap-3 mb-6">
+            <View className="flex-1">
+              <Text className="text-xs text-neutral-400 mb-1">Min age</Text>
+              <View className="flex-row gap-1.5 flex-wrap">
+                {[18, 25, 30, 35].map(age => (
+                  <Pressable
+                    key={age}
+                    onPress={() =>
+                      setPendingFilters(prev => ({
+                        ...prev,
+                        minAge: prev.minAge === age ? null : age,
+                      }))
+                    }
+                    className={`px-3 py-2 rounded-lg border ${
+                      pendingFilters.minAge === age
+                        ? 'bg-primary-100 border-primary-500'
+                        : 'bg-neutral-50 border-neutral-200'
+                    }`}
+                  >
+                    <Text
+                      className={`text-sm font-medium ${
+                        pendingFilters.minAge === age ? 'text-primary-800' : 'text-neutral-600'
+                      }`}
+                    >
+                      {age}+
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+            <View className="flex-1">
+              <Text className="text-xs text-neutral-400 mb-1">Max age</Text>
+              <View className="flex-row gap-1.5 flex-wrap">
+                {[35, 45, 55, 65].map(age => (
+                  <Pressable
+                    key={age}
+                    onPress={() =>
+                      setPendingFilters(prev => ({
+                        ...prev,
+                        maxAge: prev.maxAge === age ? null : age,
+                      }))
+                    }
+                    className={`px-3 py-2 rounded-lg border ${
+                      pendingFilters.maxAge === age
+                        ? 'bg-primary-100 border-primary-500'
+                        : 'bg-neutral-50 border-neutral-200'
+                    }`}
+                  >
+                    <Text
+                      className={`text-sm font-medium ${
+                        pendingFilters.maxAge === age ? 'text-primary-800' : 'text-neutral-600'
+                      }`}
+                    >
+                      {'≤'}{age}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </View>
+
+          <View className="flex-row gap-3">
+            <Pressable
+              onPress={clearFilters}
+              className="flex-1 py-3.5 rounded-2xl border border-neutral-200 items-center"
+            >
+              <Text className="text-sm font-semibold text-neutral-600">Clear all</Text>
+            </Pressable>
+            <Pressable
+              onPress={applyFilters}
+              className="flex-1 py-3.5 rounded-2xl bg-neutral-900 items-center"
+            >
+              <Text className="text-sm font-semibold text-white">Apply filters</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

@@ -18,6 +18,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ScreenState } from '@/components/ui/screen-state';
 import { getErrorMessage, isConfigError } from '@/lib/errors';
 import { useAuth } from '@/lib/auth-context';
+import { useSubscription } from '@/hooks/use-subscription';
 import { createActivity } from '@/services/activities';
 import { getCategories } from '@/services/profiles';
 import type { Database } from '@/types/database';
@@ -69,6 +70,7 @@ function parseScheduledDateTime(date: string, time: string) {
 export default function PostActivityScreen() {
   const { user, profile } = useAuth();
   const router = useRouter();
+  const { canRecurring } = useSubscription();
 
   const [selectedCategory, setSelectedCategory] = useState('');
   const [customCategory, setCustomCategory] = useState('');
@@ -147,17 +149,18 @@ export default function PostActivityScreen() {
       Alert.alert('Missing neighborhood', 'Please enter the neighborhood.');
       return;
     }
-    if (!isRecurring && (!date.trim() || !time.trim())) {
+    const effectivelyRecurring = isRecurring && canRecurring;
+    if (!effectivelyRecurring && (!date.trim() || !time.trim())) {
       Alert.alert('Missing schedule', 'Please enter both a date and a time.');
       return;
     }
-    if (isRecurring && !selectedDay) {
+    if (effectivelyRecurring && !selectedDay) {
       Alert.alert('Missing day', 'Please select which day the activity recurs.');
       return;
     }
 
-    const scheduledDateTime = !isRecurring ? parseScheduledDateTime(date, time) : null;
-    if (!isRecurring && !scheduledDateTime) {
+    const scheduledDateTime = !effectivelyRecurring ? parseScheduledDateTime(date, time) : null;
+    if (!effectivelyRecurring && !scheduledDateTime) {
       Alert.alert(
         'Invalid schedule',
         'Enter the date as YYYY-MM-DD and the time as HH:MM using the 24-hour clock.'
@@ -194,7 +197,7 @@ export default function PostActivityScreen() {
         title: title.trim(),
         description: description.trim(),
         date_time: scheduledDateTime,
-        recurrence_rule: isRecurring && selectedDay ? `weekly:${DAY_MAP[selectedDay]}` : null,
+        recurrence_rule: effectivelyRecurring && selectedDay ? `weekly:${DAY_MAP[selectedDay]}` : null,
         neighborhood: neighborhood.trim(),
         coordinates: null,
         city: profile.city,
@@ -325,20 +328,40 @@ export default function PostActivityScreen() {
             style={{ minHeight: 100, textAlignVertical: 'top' } as const}
           />
 
-          <View className="flex-row items-center justify-between mb-4 bg-white rounded-xl border border-neutral-200 px-4 py-3">
-            <View className="flex-row items-center">
-              <IconSymbol name="clock" size={18} color="#78716c" />
-              <Text className="text-base text-neutral-700 ml-2">Recurring activity</Text>
+          <Pressable
+            onPress={() => {
+              if (!canRecurring) {
+                router.push('/subscription');
+                return;
+              }
+              setIsRecurring(prev => !prev);
+            }}
+            className="flex-row items-center justify-between mb-4 bg-white rounded-xl border border-neutral-200 px-4 py-3"
+          >
+            <View className="flex-1">
+              <View className="flex-row items-center">
+                <IconSymbol name="clock" size={18} color="#78716c" />
+                <Text className="text-base text-neutral-700 ml-2">Recurring activity</Text>
+                {!canRecurring ? (
+                  <View className="ml-2 bg-amber-100 px-2 py-0.5 rounded-full">
+                    <Text className="text-xs text-amber-700 font-medium">Standard</Text>
+                  </View>
+                ) : null}
+              </View>
             </View>
-            <Switch
-              value={isRecurring}
-              onValueChange={setIsRecurring}
-              trackColor={{ false: '#e7e5e4', true: '#e8572a' }}
-              thumbColor="#fff"
-            />
-          </View>
+            {canRecurring ? (
+              <Switch
+                value={isRecurring}
+                onValueChange={setIsRecurring}
+                trackColor={{ false: '#e7e5e4', true: '#e8572a' }}
+                thumbColor="#fff"
+              />
+            ) : (
+              <IconSymbol name="lock.fill" size={16} color="#a8a29e" />
+            )}
+          </Pressable>
 
-          {isRecurring ? (
+          {isRecurring && canRecurring ? (
             <View className="mb-4">
               <Text className="text-sm font-medium text-neutral-700 mb-2">Repeat every</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
