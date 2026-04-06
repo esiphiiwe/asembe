@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Text, View, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { NavIconButton } from '@/components/ui/nav-icon-button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -7,6 +7,7 @@ import { AsambeButton } from '@/components/ui/asambe-button';
 import { ScreenState } from '@/components/ui/screen-state';
 import { useBackNavigation } from '@/hooks/use-back-navigation';
 import { useAuth } from '@/lib/auth-context';
+import { useSubscription } from '@/hooks/use-subscription';
 import { getErrorMessage, isConfigError, isDuplicateError } from '@/lib/errors';
 import { getActivityById, type ActivityDetailView } from '@/services/activities';
 import { createMatchRequest } from '@/services/matches';
@@ -23,6 +24,8 @@ const REPORT_REASONS = [
 export default function ActivityDetailScreen() {
   const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>();
   const { user, profile } = useAuth();
+  const router = useRouter();
+  const { canRequest, matchRequestCount, matchRequestLimit } = useSubscription();
 
   const [activity, setActivity] = useState<ActivityDetailView | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,6 +68,21 @@ export default function ActivityDetailScreen() {
       Alert.alert(
         'Phone number required',
         'You need a phone number on your profile before you can request to join an activity. Go to Settings → Account to add one.',
+      );
+      return;
+    }
+
+    if (!canRequest) {
+      Alert.alert(
+        'Monthly limit reached',
+        `You've used all ${matchRequestLimit} match requests for this month on the free plan. Upgrade to Standard or Premium for unlimited requests.`,
+        [
+          { text: 'Not now', style: 'cancel' },
+          {
+            text: 'See plans',
+            onPress: () => router.push('/subscription'),
+          },
+        ]
       );
       return;
     }
@@ -261,27 +279,34 @@ export default function ActivityDetailScreen() {
       </ScrollView>
 
       {!isOwnActivity ? (
-        <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-neutral-100 px-6 py-4 pb-8 flex-row items-center">
-          <View className="flex-1 mr-4">
-            <View className="flex-row items-center">
-              <View className="w-8 h-8 bg-primary-200 rounded-full items-center justify-center mr-2">
-                <Text className="text-xs font-bold text-primary-800">{posterInitial}</Text>
-              </View>
-              <View>
-                <Text className="text-sm font-medium text-neutral-900">{poster.name.split(' ')[0]}</Text>
-                <View className="flex-row items-center">
-                  <IconSymbol name="star.fill" size={10} color="#d17a47" />
-                  <Text className="text-xs text-neutral-500 ml-0.5">{Number(poster.trustScore).toFixed(1)}</Text>
+        <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-neutral-100 px-6 py-4 pb-8">
+          {matchRequestLimit !== null ? (
+            <Text className="text-xs text-neutral-400 text-center mb-2">
+              {matchRequestLimit - matchRequestCount} of {matchRequestLimit} free requests remaining this month
+            </Text>
+          ) : null}
+          <View className="flex-row items-center">
+            <View className="flex-1 mr-4">
+              <View className="flex-row items-center">
+                <View className="w-8 h-8 bg-primary-200 rounded-full items-center justify-center mr-2">
+                  <Text className="text-xs font-bold text-primary-800">{posterInitial}</Text>
+                </View>
+                <View>
+                  <Text className="text-sm font-medium text-neutral-900">{poster.name.split(' ')[0]}</Text>
+                  <View className="flex-row items-center">
+                    <IconSymbol name="star.fill" size={10} color="#d17a47" />
+                    <Text className="text-xs text-neutral-500 ml-0.5">{Number(poster.trustScore).toFixed(1)}</Text>
+                  </View>
                 </View>
               </View>
             </View>
+            <AsambeButton
+              title={requesting ? 'Requesting...' : 'Request to join'}
+              size="md"
+              onPress={handleRequestToJoin}
+              disabled={requesting}
+            />
           </View>
-          <AsambeButton
-            title={requesting ? 'Requesting...' : 'Request to join'}
-            size="md"
-            onPress={handleRequestToJoin}
-            disabled={requesting}
-          />
         </View>
       ) : null}
     </View>
