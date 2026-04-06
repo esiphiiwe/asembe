@@ -10,6 +10,7 @@ interface ActivityCardProps {
   posterName: string;
   trustScore: number;
   companionCount: number;
+  womenOnly?: boolean;
   onPress?: () => void;
   variant?: 'horizontal' | 'vertical';
 }
@@ -23,6 +24,7 @@ export function ActivityCard({
   posterName,
   trustScore,
   companionCount,
+  womenOnly = false,
   onPress,
   variant = 'vertical',
 }: ActivityCardProps) {
@@ -37,6 +39,11 @@ export function ActivityCard({
             <Text className="text-xs">{categoryIcon}</Text>
             <Text className="text-xs font-medium text-neutral-700 ml-1 capitalize">{category}</Text>
           </View>
+          {womenOnly ? (
+            <View className="absolute bottom-3 left-3 bg-rose-100 rounded-full px-2.5 py-1 flex-row items-center">
+              <Text className="text-xs font-medium text-rose-700">Women only</Text>
+            </View>
+          ) : null}
           <Pressable className="absolute top-3 right-3 bg-white/90 rounded-full w-8 h-8 items-center justify-center">
             <IconSymbol name="heart" size={16} color="#1c1917" />
           </Pressable>
@@ -82,11 +89,16 @@ export function ActivityCard({
       </View>
       <View className="flex-1 ml-3 justify-between">
         <View>
-          <View className="flex-row items-center">
+          <View className="flex-row items-center flex-wrap gap-1">
             <View className="bg-primary-50 rounded-full px-2 py-0.5">
               <Text className="text-xs font-medium text-primary-700 capitalize">{category}</Text>
             </View>
-            <Text className="text-xs text-neutral-400 ml-2">{dateLabel}</Text>
+            {womenOnly ? (
+              <View className="bg-rose-100 rounded-full px-2 py-0.5">
+                <Text className="text-xs font-medium text-rose-700">Women only</Text>
+              </View>
+            ) : null}
+            <Text className="text-xs text-neutral-400">{dateLabel}</Text>
           </View>
           <Text className="text-base font-semibold text-neutral-900 mt-1" numberOfLines={1}>
             {title}

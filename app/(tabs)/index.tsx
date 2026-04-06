@@ -70,6 +70,7 @@ export default function HomeScreen() {
         city: profile?.city,
         category: selectedCategory ?? undefined,
         search: deferredSearchText || undefined,
+        userGender: profile?.gender ?? null,
       });
       setActivities(data);
     } catch (err) {
@@ -264,6 +265,7 @@ export default function HomeScreen() {
                   posterName={item.posterName}
                   trustScore={item.posterTrustScore}
                   companionCount={item.companionCount}
+                  womenOnly={item.womenOnly}
                   onPress={() =>
                     router.push({
                       pathname: '/activity/[id]',
@@ -310,6 +312,7 @@ export default function HomeScreen() {
                 posterName={item.posterName}
                 trustScore={item.posterTrustScore}
                 companionCount={item.companionCount}
+                womenOnly={item.womenOnly}
                 onPress={() =>
                   router.push({
                     pathname: '/activity/[id]',

@@ -184,13 +184,19 @@ export default function ActivityDetailScreen() {
         </View>
 
         <View className="px-6 pt-5 pb-32">
-          <View className="flex-row items-center mb-3">
+          <View className="flex-row items-center flex-wrap gap-2 mb-3">
             <View className="bg-primary-50 rounded-full px-3 py-1 flex-row items-center">
               <Text className="text-sm mr-1">{activity.categoryIcon}</Text>
               <Text className="text-sm font-medium text-primary-700 capitalize">{activity.categoryName}</Text>
             </View>
+            {activity.womenOnly ? (
+              <View className="bg-rose-100 rounded-full px-3 py-1 flex-row items-center">
+                <Text className="text-xs mr-1">♀</Text>
+                <Text className="text-xs font-semibold text-rose-700">Women only</Text>
+              </View>
+            ) : null}
             {activity.recurrenceRule ? (
-              <View className="bg-neutral-100 rounded-full px-3 py-1 ml-2 flex-row items-center">
+              <View className="bg-neutral-100 rounded-full px-3 py-1 flex-row items-center">
                 <IconSymbol name="clock" size={12} color="#78716c" />
                 <Text className="text-xs text-neutral-600 ml-1">Recurring</Text>
               </View>

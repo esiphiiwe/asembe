@@ -103,7 +103,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
           profile: null,
           error: normalizedError,
           isLoading: false,
-          isOnboarded: !!session?.user,
+          // Profile fetch failed — treat as not onboarded so the user is
+          // routed through the onboarding flow rather than into the app
+          // with a null profile.
+          isOnboarded: false,
         });
       }
     };

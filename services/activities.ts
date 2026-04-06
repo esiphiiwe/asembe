@@ -25,6 +25,7 @@ export interface ActivityFeedItem {
   posterName: string;
   posterTrustScore: number;
   dateLabel: string;
+  womenOnly: boolean;
 }
 
 export interface ActivityPoster {
@@ -53,6 +54,7 @@ export interface ActivityDetailView {
   categoryName: string;
   categoryIcon: string;
   scheduleLabel: string;
+  womenOnly: boolean;
   poster: ActivityPoster;
 }
 
@@ -86,6 +88,7 @@ function mapActivityFeedItem(
     posterName: row.profiles?.name ?? 'Unknown',
     posterTrustScore: row.profiles?.trust_score ?? 0,
     dateLabel: formatActivitySchedule(row.date_time, row.recurrence_rule),
+    womenOnly: row.women_only,
   };
 }
 
@@ -106,6 +109,7 @@ function mapActivityDetailView(
     categoryName: row.categories?.name ?? 'other',
     categoryIcon: row.categories?.icon ?? '✨',
     scheduleLabel: formatActivitySchedule(row.date_time, row.recurrence_rule),
+    womenOnly: row.women_only,
     poster: {
       id: row.profiles?.id ?? '',
       name: row.profiles?.name ?? 'Unknown',
@@ -140,6 +144,7 @@ export async function getOpenActivities(filters?: {
   category?: string;
   city?: string;
   search?: string;
+  userGender?: Database['public']['Tables']['profiles']['Row']['gender'] | null;
 }) {
   const supabase = getSupabaseClient();
 
@@ -152,6 +157,11 @@ export async function getOpenActivities(filters?: {
     `)
     .eq('status', 'open')
     .order('created_at', { ascending: false });
+
+  // Hide women-only activities from viewers who are not women
+  if (filters?.userGender !== 'woman') {
+    query = query.eq('women_only', false);
+  }
 
   if (filters?.city) {
     query = query.eq('city', filters.city);
