@@ -1,4 +1,5 @@
 import { formatActivitySchedule } from '@/lib/activity-utils';
+import { calculateMatchScore } from '@/lib/match-score';
 import { getSupabaseClient } from '@/lib/supabase';
 import { canSendMatchRequest } from '@/services/subscriptions';
 import type { Database } from '@/types/database';
@@ -16,6 +17,7 @@ export interface PendingMatchRequestView {
   dateLabel: string;
   companionName: string;
   companionTrustScore: number;
+  score: number | null;
 }
 
 export interface MatchListItemView {
@@ -33,14 +35,22 @@ export interface MatchListItemView {
   dateTime: string | null;
   recurrenceRule: string | null;
   dateLabel: string;
+  chatExpiresAt: string | null;
+  /** Whether the current user (caller) has opted to keep this chat open */
+  currentUserKeepOpen: boolean;
+  /** Whether the companion has opted to keep this chat open */
+  companionKeepOpen: boolean;
 }
 
 export type MatchDetailView = MatchListItemView;
 
 function mapMatchListItem(match: any, currentUserId: string): MatchListItemView {
-  const companion = match.user1?.id === currentUserId ? match.user2 : match.user1;
+  const isUser1 = match.user1?.id === currentUserId;
+  const companion = isUser1 ? match.user2 : match.user1;
   const dateTime = match.activities?.date_time ?? null;
   const recurrenceRule = match.activities?.recurrence_rule ?? null;
+  const keepOpenUser1: boolean = match.keep_open_user1 ?? false;
+  const keepOpenUser2: boolean = match.keep_open_user2 ?? false;
 
   return {
     id: match.id,
@@ -57,31 +67,37 @@ function mapMatchListItem(match: any, currentUserId: string): MatchListItemView 
     dateTime,
     recurrenceRule,
     dateLabel: formatActivitySchedule(dateTime, recurrenceRule),
+    chatExpiresAt: match.chat_expires_at ?? null,
+    currentUserKeepOpen: isUser1 ? keepOpenUser1 : keepOpenUser2,
+    companionKeepOpen: isUser1 ? keepOpenUser2 : keepOpenUser1,
   };
 }
 
 export async function createMatchRequest(activityId: string, requesterId: string) {
   const supabase = getSupabaseClient();
 
-  const [requestCheck, { data: activity, error: activityError }, { data: requester, error: requesterError }] =
-    await Promise.all([
-      canSendMatchRequest(requesterId),
-      supabase
-        .from('activities')
-        .select('women_only')
-        .eq('id', activityId)
-        .single(),
-      supabase
-        .from('profiles')
-        .select('gender')
-        .eq('id', requesterId)
-        .single(),
-    ]);
+  // Fetch all data needed for the hard filters and score calculation in parallel.
+  const [
+    requestCheck,
+    { data: activity, error: activityError },
+    { data: requester, error: requesterError },
+  ] = await Promise.all([
+    canSendMatchRequest(requesterId),
+    supabase
+      .from('activities')
+      .select('women_only, date_time, recurrence_rule, city, category_id, user_id')
+      .eq('id', activityId)
+      .single(),
+    supabase
+      .from('profiles')
+      .select('gender, age, trust_score, city')
+      .eq('id', requesterId)
+      .single(),
+  ]);
 
   if (!requestCheck.allowed) {
     throw new Error(requestCheck.reason ?? 'You have reached your monthly match request limit.');
   }
-
   if (activityError) throw activityError;
   if (requesterError) throw requesterError;
 
@@ -89,9 +105,71 @@ export async function createMatchRequest(activityId: string, requesterId: string
     throw new Error('This activity is open to women companions only.');
   }
 
+  // Fetch additional data for scoring (non-blocking failures fall back to null).
+  const posterId = activity!.user_id;
+  const categoryId = activity!.category_id;
+
+  const [
+    { data: poster },
+    { data: posterPref },
+    { data: requesterPref },
+    { data: badReviews },
+  ] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('age, trust_score')
+      .eq('id', posterId)
+      .maybeSingle(),
+    supabase
+      .from('user_activity_preferences')
+      .select('preferred_age_range_min, preferred_age_range_max')
+      .eq('user_id', posterId)
+      .eq('category_id', categoryId)
+      .maybeSingle(),
+    supabase
+      .from('user_activity_preferences')
+      .select('preferred_age_range_min, preferred_age_range_max')
+      .eq('user_id', requesterId)
+      .eq('category_id', categoryId)
+      .maybeSingle(),
+    // Check for any low rating (≤ 2) between this pair in either direction.
+    supabase
+      .from('reviews')
+      .select('id')
+      .or(
+        `and(reviewer_id.eq.${requesterId},reviewee_id.eq.${posterId}),` +
+        `and(reviewer_id.eq.${posterId},reviewee_id.eq.${requesterId})`
+      )
+      .lte('rating', 2)
+      .limit(1),
+  ]);
+
+  const score = calculateMatchScore({
+    requesterAge: requester!.age,
+    requesterTrustScore: requester!.trust_score,
+    requesterCity: requester!.city,
+    requesterPreference: requesterPref
+      ? {
+          preferredAgeRangeMin: requesterPref.preferred_age_range_min,
+          preferredAgeRangeMax: requesterPref.preferred_age_range_max,
+        }
+      : null,
+    posterAge: poster?.age ?? 25,
+    posterTrustScore: poster?.trust_score ?? 0,
+    posterPreference: posterPref
+      ? {
+          preferredAgeRangeMin: posterPref.preferred_age_range_min,
+          preferredAgeRangeMax: posterPref.preferred_age_range_max,
+        }
+      : null,
+    activityCity: activity!.city,
+    activityDateTime: activity!.date_time,
+    hasBadPriorHistory: (badReviews?.length ?? 0) > 0,
+  });
+
   const { data, error } = await supabase
     .from('match_requests')
-    .insert({ activity_id: activityId, requester_id: requesterId })
+    .insert({ activity_id: activityId, requester_id: requesterId, score })
     .select()
     .single();
 
@@ -125,7 +203,7 @@ export async function getPendingRequestsForUser(userId: string) {
     `)
     .eq('status', 'pending')
     .in('activity_id', activityIds)
-    .order('created_at', { ascending: false });
+    .order('score', { ascending: false, nullsFirst: false });
 
   if (error) throw error;
 
@@ -143,6 +221,7 @@ export async function getPendingRequestsForUser(userId: string) {
     ),
     companionName: request.profiles?.name ?? 'Unknown',
     companionTrustScore: request.profiles?.trust_score ?? 0,
+    score: request.score ?? null,
   })) as PendingMatchRequestView[];
 }
 
@@ -281,6 +360,36 @@ export async function getMatchById(matchId: string, currentUserId: string) {
   }
 
   return mapMatchListItem(data, currentUserId);
+}
+
+export async function setKeepChatOpen(matchId: string, currentUserId: string) {
+  const supabase = getSupabaseClient();
+
+  const { data: match, error: fetchError } = await supabase
+    .from('matches')
+    .select('user1_id, user2_id')
+    .eq('id', matchId)
+    .single();
+
+  if (fetchError) throw fetchError;
+
+  const column =
+    match.user1_id === currentUserId
+      ? 'keep_open_user1'
+      : match.user2_id === currentUserId
+        ? 'keep_open_user2'
+        : null;
+
+  if (!column) {
+    throw new Error('You are not a participant in this match.');
+  }
+
+  const { error } = await supabase
+    .from('matches')
+    .update({ [column]: true })
+    .eq('id', matchId);
+
+  if (error) throw error;
 }
 
 export async function updateMatchStatus(matchId: string, status: 'completed' | 'cancelled') {

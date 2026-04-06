@@ -255,6 +255,7 @@ export default function MatchInboxScreen() {
                 companionTrustScore={request.companionTrustScore}
                 dateLabel={request.dateLabel}
                 neighborhood={request.neighborhood}
+                score={request.score}
                 onAccept={() => handleAccept(request)}
                 onDecline={() => handleDecline(request)}
               />

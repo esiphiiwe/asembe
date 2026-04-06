@@ -22,7 +22,7 @@ import { useBackNavigation } from '@/hooks/use-back-navigation';
 import { useAuth } from '@/lib/auth-context';
 import { getErrorMessage, isConfigError } from '@/lib/errors';
 import { getMessages, sendMessage as sendChatMessage, subscribeToMessages, type ChatMessageView } from '@/services/chat';
-import { getMatchById, type MatchDetailView } from '@/services/matches';
+import { getMatchById, setKeepChatOpen, type MatchDetailView } from '@/services/matches';
 import { blockUser, reportUser } from '@/services/safety';
 
 const REPORT_REASONS = [
@@ -33,6 +33,27 @@ const REPORT_REASONS = [
   'Other',
 ];
 
+const HOURS_24 = 24 * 60 * 60 * 1000;
+
+function formatExpiryLabel(expiresAt: string | null): string {
+  if (!expiresAt) return '';
+
+  const msRemaining = new Date(expiresAt).getTime() - Date.now();
+
+  if (msRemaining <= 0) return 'This chat has expired.';
+
+  const totalMinutes = Math.floor(msRemaining / 60_000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours >= 24) {
+    const days = Math.floor(hours / 24);
+    return `Expires in ${days}d ${hours % 24}h`;
+  }
+  if (hours > 0) return `Expires in ${hours}h ${minutes}m`;
+  return `Expires in ${minutes}m`;
+}
+
 export default function ChatScreen() {
   const { matchId, returnTo } = useLocalSearchParams<{ matchId: string; returnTo?: string }>();
   const { user } = useAuth();
@@ -42,14 +63,23 @@ export default function ChatScreen() {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [keepingOpen, setKeepingOpen] = useState(false);
   const [match, setMatch] = useState<MatchDetailView | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(true);
+  const [now, setNow] = useState(Date.now());
   const flatListRef = useRef<FlatList>(null);
+
   const handleBack = useBackNavigation({
     fallbackHref: '/(tabs)/inbox',
     returnTo,
   });
+
+  // Tick every minute so the expiry countdown stays current.
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   const loadMessages = useCallback(async () => {
     if (!user || !matchId) {
@@ -68,10 +98,10 @@ export default function ChatScreen() {
 
       setMessages(messageData);
       setMatch(matchData);
-    } catch (error) {
+    } catch (err) {
       setMessages([]);
       setMatch(null);
-      setError(error);
+      setError(err);
     } finally {
       setLoading(false);
     }
@@ -107,8 +137,18 @@ export default function ChatScreen() {
     return unsubscribe;
   }, [loadMessages, matchId, user]);
 
+  // Derived expiry state.
+  const chatExpiresAt = match?.chatExpiresAt ?? null;
+  const expiryMs = chatExpiresAt ? new Date(chatExpiresAt).getTime() : null;
+  const isExpired = expiryMs !== null && now >= expiryMs;
+  const isNearExpiry = expiryMs !== null && !isExpired && expiryMs - now < HOURS_24;
+  const bothKeptOpen = (match?.currentUserKeepOpen ?? false) && (match?.companionKeepOpen ?? false);
+  const chatBlocked = isExpired && !bothKeptOpen;
+  const showKeepOpenBanner = (isExpired || isNearExpiry) && !bothKeptOpen;
+  const expiryLabel = formatExpiryLabel(chatExpiresAt);
+
   const handleSend = async () => {
-    if (!text.trim() || !user || !matchId) return;
+    if (!text.trim() || !user || !matchId || chatBlocked) return;
 
     const messageText = text.trim();
     setText('');
@@ -117,11 +157,30 @@ export default function ChatScreen() {
     try {
       await sendChatMessage(matchId, user.id, messageText);
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-    } catch (error) {
+    } catch (err) {
       setText(messageText);
-      Alert.alert('Message failed', getErrorMessage(error, 'Could not send your message.'));
+      Alert.alert('Message failed', getErrorMessage(err, 'Could not send your message.'));
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleKeepOpen = async () => {
+    if (!user || !matchId || !match || match.currentUserKeepOpen) return;
+
+    setKeepingOpen(true);
+    setMatch(prev => prev ? { ...prev, currentUserKeepOpen: true } : prev);
+
+    try {
+      await setKeepChatOpen(matchId, user.id);
+      // Reload to get the companion's latest keep_open state as well.
+      const updated = await getMatchById(matchId, user.id);
+      setMatch(updated);
+    } catch (err) {
+      setMatch(prev => prev ? { ...prev, currentUserKeepOpen: false } : prev);
+      Alert.alert('Error', getErrorMessage(err, 'Could not update your preference. Please try again.'));
+    } finally {
+      setKeepingOpen(false);
     }
   };
 
@@ -291,12 +350,64 @@ export default function ChatScreen() {
         className="flex-1"
         keyboardVerticalOffset={0}
       >
-        <View className="mx-4 mt-3 mb-1 bg-primary-50 rounded-xl px-4 py-2.5 flex-row items-center">
-          <IconSymbol name="clock" size={14} color="#c3653c" />
-          <Text className="text-xs text-primary-700 ml-2 flex-1">
-            This conversation expires 48h after the activity unless you both choose to keep it open.
-          </Text>
-        </View>
+        {/* Expiry status banner */}
+        {chatExpiresAt ? (
+          <View
+            className={`mx-4 mt-3 mb-1 rounded-xl px-4 py-2.5 flex-row items-center ${
+              isExpired ? 'bg-neutral-100' : 'bg-primary-50'
+            }`}
+          >
+            <IconSymbol
+              name="clock"
+              size={14}
+              color={isExpired ? '#78716c' : '#c3653c'}
+            />
+            <Text
+              className={`text-xs ml-2 flex-1 ${
+                isExpired ? 'text-neutral-500' : 'text-primary-700'
+              }`}
+            >
+              {isExpired && !bothKeptOpen
+                ? 'This chat has expired. Keep it open below to continue messaging.'
+                : expiryLabel}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* Keep chat open banner — visible when < 24h left or expired */}
+        {showKeepOpenBanner ? (
+          <View className="mx-4 mb-1 bg-white border border-neutral-200 rounded-xl px-4 py-3">
+            {match.currentUserKeepOpen ? (
+              <View className="flex-row items-center gap-2">
+                <IconSymbol name="checkmark.circle.fill" size={16} color="#16a34a" />
+                <Text className="text-xs text-neutral-600 flex-1">
+                  You chose to keep this chat open. Waiting for {match.companionName} to do the same.
+                </Text>
+              </View>
+            ) : (
+              <>
+                <Text className="text-xs text-neutral-700 font-medium mb-2">
+                  Keep this chat open?
+                </Text>
+                <Text className="text-xs text-neutral-500 mb-3 leading-4">
+                  Both you and {match.companionName} need to opt in for messaging to continue.
+                </Text>
+                <Pressable
+                  onPress={handleKeepOpen}
+                  disabled={keepingOpen}
+                  className="bg-accent rounded-xl py-2.5 items-center"
+                >
+                  {keepingOpen ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text className="text-sm font-semibold text-white">Keep chat open</Text>
+                  )}
+                </Pressable>
+              </>
+            )}
+          </View>
+        ) : null}
+
         {!isRealtimeConnected ? (
           <View className="mx-4 mt-2 mb-1 bg-neutral-100 rounded-xl px-4 py-2.5 flex-row items-center">
             <IconSymbol name="exclamationmark.triangle" size={14} color="#78716c" />
@@ -329,25 +440,42 @@ export default function ChatScreen() {
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
         />
 
-        <View className="flex-row items-end px-4 py-3 bg-white border-t border-neutral-100 pb-6">
-          <TextInput
-            value={text}
-            onChangeText={setText}
-            placeholder="Type a message..."
-            placeholderTextColor="#a8a29e"
-            multiline
-            className="flex-1 bg-neutral-50 rounded-2xl px-4 py-3 text-base text-neutral-900 max-h-24 mr-2"
-          />
-          <Pressable
-            onPress={handleSend}
-            disabled={sending || !text.trim()}
-            className={`w-11 h-11 rounded-full items-center justify-center ${
-              text.trim() ? 'bg-accent' : 'bg-neutral-200'
-            }`}
-          >
-            <IconSymbol name="paperplane.fill" size={18} color={text.trim() ? '#fff' : '#a8a29e'} />
-          </Pressable>
-        </View>
+        {chatBlocked ? (
+          <View className="mx-4 mb-6 mt-2 bg-neutral-100 rounded-2xl px-4 py-4 items-center">
+            <IconSymbol name="lock.fill" size={20} color="#a8a29e" />
+            <Text className="text-sm font-medium text-neutral-600 mt-2 text-center">
+              Messaging is closed
+            </Text>
+            <Text className="text-xs text-neutral-400 mt-1 text-center leading-4">
+              This chat expired. Opt in above to re-open it with {match.companionName}.
+            </Text>
+          </View>
+        ) : (
+          <View className="flex-row items-end px-4 py-3 bg-white border-t border-neutral-100 pb-6">
+            <TextInput
+              value={text}
+              onChangeText={setText}
+              placeholder="Type a message..."
+              placeholderTextColor="#a8a29e"
+              multiline
+              editable={!chatBlocked}
+              className="flex-1 bg-neutral-50 rounded-2xl px-4 py-3 text-base text-neutral-900 max-h-24 mr-2"
+            />
+            <Pressable
+              onPress={handleSend}
+              disabled={sending || !text.trim() || chatBlocked}
+              className={`w-11 h-11 rounded-full items-center justify-center ${
+                text.trim() && !chatBlocked ? 'bg-accent' : 'bg-neutral-200'
+              }`}
+            >
+              <IconSymbol
+                name="paperplane.fill"
+                size={18}
+                color={text.trim() && !chatBlocked ? '#fff' : '#a8a29e'}
+              />
+            </Pressable>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

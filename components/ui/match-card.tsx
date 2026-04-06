@@ -12,6 +12,8 @@ interface MatchCardProps {
   dateLabel: string;
   neighborhood: string;
   variant: MatchCardVariant;
+  /** Match quality score in [0, 1]. Shown as a percentage badge on pending cards. */
+  score?: number | null;
   onAccept?: () => void;
   onDecline?: () => void;
   onChat?: () => void;
@@ -32,6 +34,7 @@ export function MatchCard({
   dateLabel,
   neighborhood,
   variant,
+  score,
   onAccept,
   onDecline,
   onChat,
@@ -42,6 +45,7 @@ export function MatchCard({
   reviewed = false,
   requestStatus,
 }: MatchCardProps) {
+  const scorePercent = score !== null && score !== undefined ? Math.round(score * 100) : null;
   return (
     <View className="bg-white rounded-2xl border border-neutral-100 p-4 mb-3">
       <View className="flex-row items-start">
@@ -63,6 +67,11 @@ export function MatchCard({
             <Text className="text-xs text-neutral-500 ml-1">{dateLabel}</Text>
           </View>
         </View>
+        {variant === 'pending' && scorePercent !== null ? (
+          <View className="bg-primary-50 rounded-xl px-2.5 py-1 ml-2 self-start">
+            <Text className="text-xs font-semibold text-primary-700">{scorePercent}%</Text>
+          </View>
+        ) : null}
       </View>
 
       <View className="h-px bg-neutral-100 my-3" />

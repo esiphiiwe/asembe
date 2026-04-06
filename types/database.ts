@@ -123,6 +123,7 @@ export type Database = {
           activity_id: string;
           requester_id: string;
           status: 'pending' | 'accepted' | 'declined';
+          score: number | null;
           created_at: string;
         };
         Insert: {
@@ -130,6 +131,7 @@ export type Database = {
           activity_id: string;
           requester_id: string;
           status?: 'pending' | 'accepted' | 'declined';
+          score?: number | null;
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['match_requests']['Insert']>;
@@ -142,6 +144,9 @@ export type Database = {
           user1_id: string;
           user2_id: string;
           status: 'confirmed' | 'completed' | 'cancelled';
+          chat_expires_at: string | null;
+          keep_open_user1: boolean;
+          keep_open_user2: boolean;
           created_at: string;
         };
         Insert: {
@@ -150,6 +155,9 @@ export type Database = {
           user1_id: string;
           user2_id: string;
           status?: 'confirmed' | 'completed' | 'cancelled';
+          chat_expires_at?: string | null;
+          keep_open_user1?: boolean;
+          keep_open_user2?: boolean;
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['matches']['Insert']>;
