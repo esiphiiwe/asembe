@@ -242,4 +242,4 @@ EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY
 9. [x] Post-activity review prompt (UI complete with Supabase service, navigable from match inbox)
 10. [x] Freemium gating + Stripe integration
 11. [x] Safety features (verification, SOS, block / report, check-in, women-only filter)
-12. Admin category management screen
+12. [x] Admin category management screen

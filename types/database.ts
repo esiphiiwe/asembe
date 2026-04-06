@@ -15,6 +15,7 @@ export type Database = {
           country: string;
           verified: boolean;
           trust_score: number;
+          is_admin: boolean;
           created_at: string;
         };
         Insert: {
@@ -30,6 +31,7 @@ export type Database = {
           country: string;
           verified?: boolean;
           trust_score?: number;
+          is_admin?: boolean;
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>;

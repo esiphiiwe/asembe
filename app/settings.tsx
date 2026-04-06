@@ -214,6 +214,23 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Admin */}
+        {profile?.is_admin && (
+          <View className="mt-6">
+            <Text className="px-6 text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-1">
+              Admin
+            </Text>
+            <View className="mx-4 bg-white rounded-2xl border border-neutral-100 overflow-hidden">
+              <SettingsRow
+                icon="tag.fill"
+                label="Category management"
+                type="nav"
+                onPress={() => router.push('/admin')}
+              />
+            </View>
+          </View>
+        )}
+
         {/* Danger zone */}
         <View className="mt-6 mb-10">
           <View className="mx-4 bg-white rounded-2xl border border-neutral-100 overflow-hidden">
