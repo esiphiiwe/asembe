@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
+import { Platform } from 'react-native';
 import type { Session, User } from '@supabase/supabase-js';
 import { getSupabaseClient, getSupabaseSetupError, isSupabaseConfigured } from './supabase';
+import { configurePushHandler, registerForPushNotifications } from './notifications';
 import type { Database } from '@/types/database';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -58,6 +60,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
   };
 
   useEffect(() => {
+    if (Platform.OS !== 'web') {
+      configurePushHandler();
+    }
+  }, []);
+
+  useEffect(() => {
     if (!isSupabaseConfigured) {
       setState(prev => ({ ...prev, error: null, isLoading: false }));
       return;
@@ -85,6 +93,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
           isLoading: false,
           isOnboarded: !!profile,
         });
+
+        // Register push token once the user is fully onboarded
+        if (session?.user && profile && Platform.OS !== 'web') {
+          void registerForPushNotifications(session.user.id);
+        }
       }
       catch (error) {
         const normalizedError = error instanceof Error

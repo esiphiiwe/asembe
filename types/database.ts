@@ -16,6 +16,8 @@ export type Database = {
           verified: boolean;
           trust_score: number;
           is_admin: boolean;
+          push_enabled: boolean;
+          email_enabled: boolean;
           created_at: string;
         };
         Insert: {
@@ -32,6 +34,8 @@ export type Database = {
           verified?: boolean;
           trust_score?: number;
           is_admin?: boolean;
+          push_enabled?: boolean;
+          email_enabled?: boolean;
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>;
@@ -283,7 +287,6 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['user_trusted_contacts']['Insert']>;
         Relationships: [];
       };
-    };
       subscriptions: {
         Row: {
           id: string;
@@ -310,6 +313,24 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database['public']['Tables']['subscriptions']['Insert']>;
+        Relationships: [];
+      };
+      push_tokens: {
+        Row: {
+          id: string;
+          user_id: string;
+          token: string;
+          platform: 'ios' | 'android' | 'web';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          token: string;
+          platform: 'ios' | 'android' | 'web';
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['push_tokens']['Insert']>;
         Relationships: [];
       };
     };

@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '@/lib/supabase';
+import { notifyNewMessage } from '@/services/notifications';
 
 export interface ChatMessageView {
   id: string;
@@ -45,6 +46,9 @@ export async function sendMessage(matchId: string, senderId: string, text: strin
     .single();
 
   if (error) throw error;
+
+  void notifyNewMessage(matchId, senderId);
+
   return data;
 }
 

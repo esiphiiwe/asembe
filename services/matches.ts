@@ -2,6 +2,7 @@ import { formatActivitySchedule } from '@/lib/activity-utils';
 import { calculateMatchScore } from '@/lib/match-score';
 import { getSupabaseClient } from '@/lib/supabase';
 import { canSendMatchRequest } from '@/services/subscriptions';
+import { notifyMatchRequest, notifyMatchResponse } from '@/services/notifications';
 import type { Database } from '@/types/database';
 
 type MatchRow = Database['public']['Tables']['matches']['Row'];
@@ -174,6 +175,9 @@ export async function createMatchRequest(activityId: string, requesterId: string
     .single();
 
   if (error) throw error;
+
+  void notifyMatchRequest(activityId, requesterId);
+
   return data;
 }
 
@@ -326,6 +330,21 @@ export async function respondToRequest(
       .neq('id', requestId);
 
     if (declineOthersError) throw declineOthersError;
+  }
+
+  // Notify the requester about the outcome (fire-and-forget)
+  if (requesterId && activityId) {
+    const { data: activity } = await supabase
+      .from('activities')
+      .select('title')
+      .eq('id', activityId)
+      .single();
+
+    void notifyMatchResponse(
+      requesterId,
+      status,
+      activity?.title ?? 'the activity'
+    );
   }
 }
 

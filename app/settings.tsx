@@ -8,6 +8,7 @@ import { SettingsRow } from '@/components/ui/settings-row';
 import { useBackNavigation } from '@/hooks/use-back-navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useSubscription } from '@/hooks/use-subscription';
+import { updateNotificationPreferences } from '@/services/profiles';
 
 const PUSH_NOTIFICATIONS_KEY = 'settings.pushNotifications';
 const EMAIL_NOTIFICATIONS_KEY = 'settings.emailNotifications';
@@ -26,46 +27,61 @@ export default function SettingsScreen() {
   const { profile, signOut } = useAuth();
   const router = useRouter();
   const { tier } = useSubscription();
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(false);
-  const [hasLoadedNotificationPreferences, setHasLoadedNotificationPreferences] = useState(false);
+  // Initialise from profile (server source of truth) if available; fall back to SecureStore
+  const [pushNotifications, setPushNotifications] = useState(
+    profile?.push_enabled ?? true
+  );
+  const [emailNotifications, setEmailNotifications] = useState(
+    profile?.email_enabled ?? false
+  );
+  const [hasLoadedNotificationPreferences, setHasLoadedNotificationPreferences] = useState(
+    profile !== null
+  );
   const handleBack = useBackNavigation({
     fallbackHref: '/(tabs)/profile',
     returnTo,
   });
 
   useEffect(() => {
+    // If profile already provided initial values, skip the SecureStore fallback
+    if (profile !== null) return;
+
     void Promise.all([
       SecureStore.getItemAsync(PUSH_NOTIFICATIONS_KEY),
       SecureStore.getItemAsync(EMAIL_NOTIFICATIONS_KEY),
-    ]).then(([storedPushNotifications, storedEmailNotifications]) => {
-      if (storedPushNotifications !== null) {
-        setPushNotifications(storedPushNotifications === 'true');
-      }
-
-      if (storedEmailNotifications !== null) {
-        setEmailNotifications(storedEmailNotifications === 'true');
-      }
+    ]).then(([storedPush, storedEmail]) => {
+      if (storedPush !== null) setPushNotifications(storedPush === 'true');
+      if (storedEmail !== null) setEmailNotifications(storedEmail === 'true');
     }).finally(() => {
       setHasLoadedNotificationPreferences(true);
     });
-  }, []);
+  }, [profile]);
 
   useEffect(() => {
-    if (!hasLoadedNotificationPreferences) {
-      return;
-    }
+    if (!hasLoadedNotificationPreferences) return;
 
     void SecureStore.setItemAsync(PUSH_NOTIFICATIONS_KEY, String(pushNotifications));
-  }, [hasLoadedNotificationPreferences, pushNotifications]);
+
+    if (profile?.id) {
+      updateNotificationPreferences(profile.id, {
+        pushEnabled: pushNotifications,
+        emailEnabled: emailNotifications,
+      }).catch((err) => console.warn('[settings] notification pref sync failed:', err));
+    }
+  }, [hasLoadedNotificationPreferences, pushNotifications]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!hasLoadedNotificationPreferences) {
-      return;
-    }
+    if (!hasLoadedNotificationPreferences) return;
 
     void SecureStore.setItemAsync(EMAIL_NOTIFICATIONS_KEY, String(emailNotifications));
-  }, [emailNotifications, hasLoadedNotificationPreferences]);
+
+    if (profile?.id) {
+      updateNotificationPreferences(profile.id, {
+        pushEnabled: pushNotifications,
+        emailEnabled: emailNotifications,
+      }).catch((err) => console.warn('[settings] notification pref sync failed:', err));
+    }
+  }, [hasLoadedNotificationPreferences, emailNotifications]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLogout = () => {
     Alert.alert('Log out', 'Are you sure you want to log out?', [

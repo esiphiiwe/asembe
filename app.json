@@ -39,7 +39,14 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "iosDisplayInForeground": true,
+          "androidMode": "default"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

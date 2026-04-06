@@ -117,6 +117,19 @@ export async function uploadProfilePhoto(userId: string, uri: string) {
   return data.publicUrl;
 }
 
+export async function updateNotificationPreferences(
+  userId: string,
+  prefs: { pushEnabled: boolean; emailEnabled: boolean }
+): Promise<void> {
+  const supabase = getSupabaseClient();
+  const { error } = await supabase
+    .from('profiles')
+    .update({ push_enabled: prefs.pushEnabled, email_enabled: prefs.emailEnabled })
+    .eq('id', userId);
+
+  if (error) throw error;
+}
+
 export async function getCategories() {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
