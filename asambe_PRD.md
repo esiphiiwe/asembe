@@ -149,7 +149,7 @@ Matching is a scored function between a requester and an activity poster. Higher
 
 ## 7. Safety Features (non-negotiable, must ship at launch)
 
-- [x] **Photo verification** — Settings row wired with "Get verified" CTA; Veriff SDK stub ready (requires `VERIFF_API_KEY` to activate full flow)
+- [x] **Photo verification** — Full Veriff hosted-flow integration: `start-verification` Edge Function creates a Veriff session and returns a hosted URL; user completes selfie + document check in an in-app browser (`expo-web-browser`); `veriff-webhook` Edge Function receives the Veriff decision, verifies the HMAC-SHA256 signature, and sets `profiles.verified = true` on approval; audit trail stored in `veriff_sessions` table (migration 010). Requires `VERIFF_API_KEY` to be set as a Supabase secret.
 - [x] **Email + phone verification** — Email verified via Supabase Auth; phone required on profile before posting or requesting an activity
 - [x] **Neighborhood-only display** — exact coordinates never shown pre-match (enforced at DB/service layer)
 - [x] **Activity check-in** — "Share check-in" button on confirmed match cards uses native share sheet; manage up to 3 trusted contacts via Settings → Trusted contacts
@@ -222,7 +222,8 @@ Matching is a scored function between a requester and an activity poster. Higher
 EXPO_PUBLIC_SUPABASE_URL
 EXPO_PUBLIC_SUPABASE_ANON_KEY
 EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN
-VERIFF_API_KEY (or equivalent ID verification provider)
+VERIFF_API_KEY        — Veriff API key; used by start-verification Edge Fn (session creation)
+                        and veriff-webhook Edge Fn (HMAC-SHA256 payload verification)
 STRIPE_SECRET_KEY
 EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY
 ```
@@ -241,5 +242,5 @@ EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY
 8. [x] Post-match chat — message bubbles, expiry notice, SOS (wired to Supabase Realtime)
 9. [x] Post-activity review prompt (UI complete with Supabase service, navigable from match inbox)
 10. [x] Freemium gating + Stripe integration
-11. [x] Safety features (verification, SOS, block / report, check-in, women-only filter)
+11. [x] Safety features (verification, SOS, block / report, check-in, women-only filter) — Veriff hosted-flow fully wired (migration 010, `start-verification` + `veriff-webhook` Edge Functions, `services/verification.ts`)
 12. [x] Admin category management screen

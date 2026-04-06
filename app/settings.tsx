@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Text, View, ScrollView, Alert } from 'react-native';
+import { ActivityIndicator, Text, View, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import * as WebBrowser from 'expo-web-browser';
 import { NavIconButton } from '@/components/ui/nav-icon-button';
 import { SettingsRow } from '@/components/ui/settings-row';
 import { useBackNavigation } from '@/hooks/use-back-navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useSubscription } from '@/hooks/use-subscription';
 import { updateNotificationPreferences } from '@/services/profiles';
+import { startVerification } from '@/services/verification';
 
 const PUSH_NOTIFICATIONS_KEY = 'settings.pushNotifications';
 const EMAIL_NOTIFICATIONS_KEY = 'settings.emailNotifications';
@@ -24,7 +26,7 @@ function tierLabel(tier: string): string {
 
 export default function SettingsScreen() {
   const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, refreshProfile } = useAuth();
   const router = useRouter();
   const { tier } = useSubscription();
   // Initialise from profile (server source of truth) if available; fall back to SecureStore
@@ -37,10 +39,43 @@ export default function SettingsScreen() {
   const [hasLoadedNotificationPreferences, setHasLoadedNotificationPreferences] = useState(
     profile !== null
   );
+  const [verifying, setVerifying] = useState(false);
   const handleBack = useBackNavigation({
     fallbackHref: '/(tabs)/profile',
     returnTo,
   });
+
+  const handleStartVerification = async () => {
+    setVerifying(true);
+    try {
+      const { sessionUrl } = await startVerification();
+      await WebBrowser.openBrowserAsync(sessionUrl, {
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+      });
+      // Browser closed — refresh profile in case the webhook already fired
+      await refreshProfile();
+      Alert.alert(
+        'Verification submitted',
+        'Your identity is being reviewed. Your profile will show as verified once approved — this usually takes just a few minutes.',
+        [{ text: 'Got it' }]
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Something went wrong';
+      if (message.includes('not configured') || message.includes('503')) {
+        Alert.alert(
+          'Verification unavailable',
+          'Photo verification is not available right now. Please try again later.'
+        );
+      } else if (message.includes('Already verified')) {
+        Alert.alert('Already verified', 'Your account is already verified.');
+        await refreshProfile();
+      } else {
+        Alert.alert('Verification failed', message);
+      }
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   useEffect(() => {
     // If profile already provided initial values, skip the SecureStore fallback
@@ -164,25 +199,37 @@ export default function SettingsScreen() {
             <SettingsRow
               icon="checkmark.circle.fill"
               label="Photo verification"
-              value={profile?.verified ? 'Verified' : 'Not verified'}
+              value={
+                profile?.verified
+                  ? 'Verified'
+                  : verifying
+                    ? undefined
+                    : 'Not verified'
+              }
               iconColor={profile?.verified ? '#16a34a' : '#a8a29e'}
               type={profile?.verified ? undefined : 'nav'}
-              onPress={profile?.verified ? undefined : () => {
-                Alert.alert(
-                  'Get verified',
-                  'Photo verification confirms your identity by matching a selfie to your profile photo. Tap "Start" when you\'re ready — verification usually takes under 2 minutes.',
-                  [
-                    { text: 'Not now', style: 'cancel' },
-                    {
-                      text: 'Start verification',
-                      onPress: () => Alert.alert(
-                        'Verification coming soon',
-                        'Photo verification will be available in the next update. Make sure your profile photo is a clear, recent photo of your face.'
-                      ),
-                    },
-                  ]
-                );
-              }}
+              rightAccessory={
+                verifying ? (
+                  <ActivityIndicator size="small" color="#a8a29e" />
+                ) : undefined
+              }
+              onPress={
+                profile?.verified || verifying
+                  ? undefined
+                  : () => {
+                      Alert.alert(
+                        'Get verified',
+                        'Photo verification confirms your identity with a selfie and ID document. Tap "Start" when you\'re ready — it usually takes under 2 minutes.',
+                        [
+                          { text: 'Not now', style: 'cancel' },
+                          {
+                            text: 'Start verification',
+                            onPress: () => void handleStartVerification(),
+                          },
+                        ]
+                      );
+                    }
+              }
             />
             <View className="h-px bg-neutral-50 mx-4" />
             <SettingsRow
