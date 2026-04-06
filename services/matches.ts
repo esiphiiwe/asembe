@@ -61,6 +61,28 @@ function mapMatchListItem(match: any, currentUserId: string): MatchListItemView 
 
 export async function createMatchRequest(activityId: string, requesterId: string) {
   const supabase = getSupabaseClient();
+
+  const [{ data: activity, error: activityError }, { data: requester, error: requesterError }] =
+    await Promise.all([
+      supabase
+        .from('activities')
+        .select('women_only')
+        .eq('id', activityId)
+        .single(),
+      supabase
+        .from('profiles')
+        .select('gender')
+        .eq('id', requesterId)
+        .single(),
+    ]);
+
+  if (activityError) throw activityError;
+  if (requesterError) throw requesterError;
+
+  if (activity?.women_only && requester?.gender !== 'woman') {
+    throw new Error('This activity is open to women companions only.');
+  }
+
   const { data, error } = await supabase
     .from('match_requests')
     .insert({ activity_id: activityId, requester_id: requesterId })
@@ -118,23 +140,51 @@ export async function getPendingRequestsForUser(userId: string) {
   })) as PendingMatchRequestView[];
 }
 
-export async function getOutgoingRequests(userId: string) {
+export interface OutgoingRequestView {
+  id: string;
+  activityId: string;
+  activityTitle: string;
+  categoryIcon: string;
+  categoryName: string;
+  neighborhood: string;
+  dateLabel: string;
+  hostName: string;
+  hostTrustScore: number;
+  status: 'pending' | 'accepted' | 'declined';
+}
+
+export async function getOutgoingRequests(userId: string): Promise<OutgoingRequestView[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('match_requests')
     .select(`
       *,
       activities!match_requests_activity_id_fkey (
-        id, title, neighborhood, date_time,
+        id, title, neighborhood, date_time, recurrence_rule,
         categories!activities_category_id_fkey ( name, icon ),
-        profiles!activities_user_id_fkey ( name )
+        profiles!activities_user_id_fkey ( name, trust_score )
       )
     `)
     .eq('requester_id', userId)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data ?? [];
+
+  return (data ?? []).map((request: any) => ({
+    id: request.id,
+    activityId: request.activity_id,
+    activityTitle: request.activities?.title ?? 'Activity',
+    categoryIcon: request.activities?.categories?.icon ?? '✨',
+    categoryName: request.activities?.categories?.name ?? 'other',
+    neighborhood: request.activities?.neighborhood ?? '',
+    dateLabel: formatActivitySchedule(
+      request.activities?.date_time ?? null,
+      request.activities?.recurrence_rule ?? null
+    ),
+    hostName: request.activities?.profiles?.name ?? 'Unknown',
+    hostTrustScore: request.activities?.profiles?.trust_score ?? 0,
+    status: request.status as 'pending' | 'accepted' | 'declined',
+  }));
 }
 
 export async function respondToRequest(

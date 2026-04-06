@@ -1,15 +1,5 @@
-import { Stack } from 'expo-router';
+import { Slot } from 'expo-router';
 
 export default function ChatLayout() {
-  return (
-    <Stack>
-      <Stack.Screen
-        name="[matchId]"
-        options={{
-          headerShown: false,
-          title: 'Chat',
-        }}
-      />
-    </Stack>
-  );
+  return <Slot />;
 }

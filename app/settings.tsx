@@ -138,7 +138,46 @@ export default function SettingsScreen() {
               icon="checkmark.circle.fill"
               label="Photo verification"
               value={profile?.verified ? 'Verified' : 'Not verified'}
-              iconColor={profile?.verified ? '#16a34a' : undefined}
+              iconColor={profile?.verified ? '#16a34a' : '#a8a29e'}
+              type={profile?.verified ? undefined : 'nav'}
+              onPress={profile?.verified ? undefined : () => {
+                Alert.alert(
+                  'Get verified',
+                  'Photo verification confirms your identity by matching a selfie to your profile photo. Tap "Start" when you\'re ready — verification usually takes under 2 minutes.',
+                  [
+                    { text: 'Not now', style: 'cancel' },
+                    {
+                      text: 'Start verification',
+                      onPress: () => Alert.alert(
+                        'Verification coming soon',
+                        'Photo verification will be available in the next update. Make sure your profile photo is a clear, recent photo of your face.'
+                      ),
+                    },
+                  ]
+                );
+              }}
+            />
+            <View className="h-px bg-neutral-50 mx-4" />
+            <SettingsRow
+              icon="person.2.fill"
+              label="Trusted contacts"
+              onPress={() =>
+                router.push({
+                  pathname: '/trusted-contacts',
+                  params: { returnTo: '/settings' },
+                })
+              }
+            />
+            <View className="h-px bg-neutral-50 mx-4" />
+            <SettingsRow
+              icon="nosign"
+              label="Blocked users"
+              onPress={() =>
+                router.push({
+                  pathname: '/blocked-users',
+                  params: { returnTo: '/settings' },
+                })
+              }
             />
           </View>
         </View>

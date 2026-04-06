@@ -77,7 +77,7 @@ export default function LoginScreen() {
               secureTextEntry
             />
 
-            <Pressable className="self-end mb-6">
+            <Pressable className="self-end mb-6" onPress={() => router.push('/(auth)/forgot-password')}>
               <Text className="text-sm font-medium text-primary-600">
                 Forgot password?
               </Text>

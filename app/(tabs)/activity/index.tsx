@@ -76,6 +76,7 @@ export default function PostActivityScreen() {
   const [description, setDescription] = useState('');
   const [neighborhood, setNeighborhood] = useState('');
   const [companionCount, setCompanionCount] = useState<number>(1);
+  const [womenOnly, setWomenOnly] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
   const [selectedDay, setSelectedDay] = useState('');
   const [date, setDate] = useState('');
@@ -118,6 +119,7 @@ export default function PostActivityScreen() {
     setDescription('');
     setNeighborhood('');
     setCompanionCount(1);
+    setWomenOnly(false);
     setIsRecurring(false);
     setSelectedDay('');
     setDate('');
@@ -168,6 +170,14 @@ export default function PostActivityScreen() {
       return;
     }
 
+    if (!profile.phone) {
+      Alert.alert(
+        'Phone number required',
+        'You need to add a phone number to your profile before posting an activity. Go to Settings → Account to add one.',
+      );
+      return;
+    }
+
     setSubmitting(true);
     try {
       const categoryId = categoryMap[selectedCategory];
@@ -190,6 +200,7 @@ export default function PostActivityScreen() {
         city: profile.city,
         country: profile.country,
         companion_count: companionCount,
+        women_only: womenOnly,
       });
 
       Alert.alert('Activity posted!', 'Your activity is now live.', [
@@ -415,9 +426,23 @@ export default function PostActivityScreen() {
             ))}
           </View>
 
-          <Text className="text-xs text-neutral-400 mb-6">
-            Companion filtering will be added once activity-level preferences are supported in the database.
-          </Text>
+          <View className="flex-row items-center justify-between mb-6 bg-white rounded-xl border border-neutral-200 px-4 py-3">
+            <View className="flex-1 mr-3">
+              <View className="flex-row items-center">
+                <IconSymbol name="person.fill" size={16} color="#78716c" />
+                <Text className="text-base text-neutral-700 ml-2">Women companions only</Text>
+              </View>
+              <Text className="text-xs text-neutral-400 mt-1 ml-6">
+                Only women can request to join this activity.
+              </Text>
+            </View>
+            <Switch
+              value={womenOnly}
+              onValueChange={setWomenOnly}
+              trackColor={{ false: '#e7e5e4', true: '#e8572a' }}
+              thumbColor="#fff"
+            />
+          </View>
 
           <View className="h-8" />
         </ScrollView>

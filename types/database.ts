@@ -67,6 +67,7 @@ export type Database = {
           city: string;
           country: string;
           companion_count: number;
+          women_only: boolean;
           status: 'open' | 'matched' | 'closed' | 'expired';
           created_at: string;
         };
@@ -85,6 +86,7 @@ export type Database = {
           city: string;
           country: string;
           companion_count: number;
+          women_only?: boolean;
           status?: 'open' | 'matched' | 'closed' | 'expired';
           created_at?: string;
         };
@@ -211,6 +213,64 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['chat_messages']['Insert']>;
+        Relationships: [];
+      };
+      user_blocks: {
+        Row: {
+          id: string;
+          blocker_id: string;
+          blocked_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          blocker_id: string;
+          blocked_id: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['user_blocks']['Insert']>;
+        Relationships: [];
+      };
+      user_reports: {
+        Row: {
+          id: string;
+          reporter_id: string;
+          reported_id: string;
+          reason: string;
+          context_type: 'match' | 'activity' | null;
+          context_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          reporter_id: string;
+          reported_id: string;
+          reason: string;
+          context_type?: 'match' | 'activity' | null;
+          context_id?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['user_reports']['Insert']>;
+        Relationships: [];
+      };
+      user_trusted_contacts: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          phone: string | null;
+          email: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          phone?: string | null;
+          email?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['user_trusted_contacts']['Insert']>;
         Relationships: [];
       };
     };

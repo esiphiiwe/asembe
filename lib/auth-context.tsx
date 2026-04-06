@@ -23,6 +23,7 @@ interface AuthContextValue extends AuthState {
   ) => Promise<{ user: User | null; session: Session | null; error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error: Error | null }>;
   createProfile: (
     data: CreateProfileData & { userId: string; email: string }
   ) => Promise<{ error: Error | null }>;
@@ -149,6 +150,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      const client = getSupabaseClient();
+      const { error } = await client.auth.resetPasswordForEmail(email);
+      return { error: error ? new Error(error.message) : null };
+    } catch (error) {
+      return { error: error instanceof Error ? error : new Error('Could not send reset email.') };
+    }
+  };
+
   const signOut = async () => {
     if (isSupabaseConfigured) {
       const client = getSupabaseClient();
@@ -210,7 +221,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   return (
     <AuthContext.Provider
-      value={{ ...state, signUp, signIn, signOut, createProfile, refreshProfile }}
+      value={{ ...state, signUp, signIn, signOut, resetPassword, createProfile, refreshProfile }}
     >
       {children}
     </AuthContext.Provider>

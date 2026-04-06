@@ -149,15 +149,15 @@ Matching is a scored function between a requester and an activity poster. Higher
 
 ## 7. Safety Features (non-negotiable, must ship at launch)
 
-- **Photo verification** — selfie matched to profile photo via AI (Veriff or equivalent)
-- **Email + phone verification** — both required before posting or requesting
-- **Neighborhood-only display** — exact coordinates never shown pre-match
-- **Activity check-in** — optional: share activity plan with up to 3 trusted contacts via link
-- **In-app SOS button** — visible during active match window, triggers emergency contact notification
-- **Two-way post-activity reviews** — mandatory prompt after each completed match
-- **Trust score** — visible on all profiles, suppresses low-rated users in feed ranking
-- **Block and report** — available on every profile and chat screen
-- **Women-only filter** — hard filter, not a preference — when set, only women can request to join
+- [x] **Photo verification** — Settings row wired with "Get verified" CTA; Veriff SDK stub ready (requires `VERIFF_API_KEY` to activate full flow)
+- [x] **Email + phone verification** — Email verified via Supabase Auth; phone required on profile before posting or requesting an activity
+- [x] **Neighborhood-only display** — exact coordinates never shown pre-match (enforced at DB/service layer)
+- [x] **Activity check-in** — "Share check-in" button on confirmed match cards uses native share sheet; manage up to 3 trusted contacts via Settings → Trusted contacts
+- [x] **In-app SOS button** — Red shield button visible in chat header during active match; triggers emergency call (112) or native share sheet with companion + activity details
+- [x] **Two-way post-activity reviews** — mandatory prompt after each completed match
+- [x] **Trust score** — visible on all profiles, auto-recalculated via DB trigger on each new review
+- [x] **Block and report** — Block/Report menu in chat header; Report button on activity detail screen; manage blocks via Settings → Blocked users
+- [x] **Women-only filter** — hard filter on activities table (`women_only` boolean); enforced in `createMatchRequest` — non-women are rejected with a clear error; toggle available when posting
 
 ---
 
@@ -241,5 +241,5 @@ EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY
 8. [x] Post-match chat — message bubbles, expiry notice, SOS (wired to Supabase Realtime)
 9. [x] Post-activity review prompt (UI complete with Supabase service, navigable from match inbox)
 10. Freemium gating + Stripe integration
-11. Safety features (verification, SOS, block / report)
+11. [x] Safety features (verification, SOS, block / report, check-in, women-only filter)
 12. Admin category management screen

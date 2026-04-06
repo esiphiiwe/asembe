@@ -9,7 +9,8 @@ import './globals.css';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 
-function AuthGate() {
+function RootNavigation() {
+  const colorScheme = useColorScheme();
   const { session, isLoading, isOnboarded } = useAuth();
   const router = useRouter();
   const segments = useSegments();
@@ -37,21 +38,14 @@ function AuthGate() {
     );
   }
 
-  return null;
-}
-
-function RootNavigation() {
-  const colorScheme = useColorScheme();
-
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AuthGate />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="activity/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="review/[matchId]" options={{ presentation: 'modal', headerShown: false }} />
-        <Stack.Screen name="chat" />
+        <Stack.Screen name="chat/[matchId]" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />

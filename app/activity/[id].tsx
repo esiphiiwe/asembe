@@ -10,10 +10,19 @@ import { useAuth } from '@/lib/auth-context';
 import { getErrorMessage, isConfigError, isDuplicateError } from '@/lib/errors';
 import { getActivityById, type ActivityDetailView } from '@/services/activities';
 import { createMatchRequest } from '@/services/matches';
+import { reportUser } from '@/services/safety';
+
+const REPORT_REASONS = [
+  'Inappropriate content',
+  'Harassment or abuse',
+  'Fake or misleading activity',
+  'Spam',
+  'Other',
+];
 
 export default function ActivityDetailScreen() {
   const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const [activity, setActivity] = useState<ActivityDetailView | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,6 +61,13 @@ export default function ActivityDetailScreen() {
       Alert.alert('Unavailable', 'This activity is not available right now.');
       return;
     }
+    if (!profile?.phone) {
+      Alert.alert(
+        'Phone number required',
+        'You need a phone number on your profile before you can request to join an activity. Go to Settings → Account to add one.',
+      );
+      return;
+    }
 
     setRequesting(true);
     try {
@@ -66,6 +82,29 @@ export default function ActivityDetailScreen() {
     } finally {
       setRequesting(false);
     }
+  };
+
+  const handleReport = () => {
+    if (!user || !activity) return;
+
+    Alert.alert(
+      `Report activity`,
+      'Why are you reporting this activity?',
+      [
+        ...REPORT_REASONS.map(reason => ({
+          text: reason,
+          onPress: async () => {
+            try {
+              await reportUser(user.id, activity.userId, reason, 'activity', id!);
+              Alert.alert('Report submitted', 'Thank you. We will review this activity.');
+            } catch {
+              Alert.alert('Error', 'Could not submit your report. Please try again.');
+            }
+          },
+        })),
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
   };
 
   if (loading) {
@@ -116,6 +155,13 @@ export default function ActivityDetailScreen() {
               onPress={handleBack}
               variant="overlay"
             />
+            {!isOwnActivity ? (
+              <NavIconButton
+                icon="flag"
+                onPress={handleReport}
+                variant="overlay"
+              />
+            ) : null}
           </View>
         </View>
 

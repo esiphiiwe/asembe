@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Text, View, ScrollView, Pressable, RefreshControl, Alert, ActivityIndicator } from 'react-native';
+import { Text, View, ScrollView, Pressable, RefreshControl, Alert, ActivityIndicator, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MatchCard } from '@/components/ui/match-card';
@@ -9,18 +9,22 @@ import { getErrorMessage, isConfigError } from '@/lib/errors';
 import {
   getUserMatches,
   getPendingRequestsForUser,
+  getOutgoingRequests,
   respondToRequest,
+  updateMatchStatus,
   type MatchListItemView,
+  type OutgoingRequestView,
   type PendingMatchRequestView,
 } from '@/services/matches';
 import { getCompletedMatchesPendingReview } from '@/services/reviews';
 
-type Tab = 'pending' | 'confirmed' | 'completed';
+type Tab = 'pending' | 'confirmed' | 'completed' | 'sent';
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'pending', label: 'Pending' },
   { key: 'confirmed', label: 'Confirmed' },
   { key: 'completed', label: 'Completed' },
+  { key: 'sent', label: 'Sent' },
 ];
 
 function EmptyState({ tab }: { tab: Tab }) {
@@ -40,6 +44,11 @@ function EmptyState({ tab }: { tab: Tab }) {
       title: 'No completed activities',
       subtitle: 'Your activity history will show up here after your first match.',
     },
+    sent: {
+      icon: '📤',
+      title: 'No sent requests',
+      subtitle: 'When you request to join an activity, it will appear here.',
+    },
   };
   const content = config[tab];
 
@@ -58,29 +67,36 @@ export default function MatchInboxScreen() {
   const [activeTab, setActiveTab] = useState<Tab>('pending');
   const [pendingRequests, setPendingRequests] = useState<PendingMatchRequestView[]>([]);
   const [matches, setMatches] = useState<MatchListItemView[]>([]);
+  const [sentRequests, setSentRequests] = useState<OutgoingRequestView[]>([]);
   const [pendingReviewMatchIds, setPendingReviewMatchIds] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
 
   const loadData = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     setError(null);
 
     try {
-      const [requestData, matchData, pendingReviewData] = await Promise.all([
+      const [requestData, matchData, pendingReviewData, sentData] = await Promise.all([
         getPendingRequestsForUser(user.id),
         getUserMatches(user.id),
         getCompletedMatchesPendingReview(user.id),
+        getOutgoingRequests(user.id),
       ]);
 
       setPendingRequests(requestData);
       setMatches(matchData);
       setPendingReviewMatchIds(new Set(pendingReviewData.map(match => match.id)));
+      setSentRequests(sentData);
     } catch (error) {
       setPendingRequests([]);
       setMatches([]);
+      setSentRequests([]);
       setPendingReviewMatchIds(new Set());
       setError(error);
     } finally {
@@ -120,6 +136,33 @@ export default function MatchInboxScreen() {
     } catch (error) {
       Alert.alert('Error', getErrorMessage(error, 'Could not decline this request.'));
     }
+  };
+
+  const handleComplete = (matchId: string) => {
+    Alert.alert(
+      'Mark as completed?',
+      'This will move the match to your completed history and allow both of you to leave a review.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Mark as completed',
+          style: 'default',
+          onPress: async () => {
+            try {
+              await updateMatchStatus(matchId, 'completed');
+              await loadData();
+            } catch (error) {
+              Alert.alert('Error', getErrorMessage(error, 'Could not mark this match as completed.'));
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleShareCheckin = (match: MatchListItemView) => {
+    const message = `Safety check-in: I'm meeting ${match.companionName} for "${match.activityTitle}" in ${match.neighborhood} on ${match.dateLabel}. Please check in with me after.`;
+    void Share.share({ message });
   };
 
   const confirmedMatches = matches.filter(match => match.status === 'confirmed');
@@ -252,6 +295,8 @@ export default function MatchInboxScreen() {
                     },
                   })
                 }
+                onComplete={() => handleComplete(match.id)}
+                onShareCheckin={() => handleShareCheckin(match)}
               />
             ))
           )
@@ -286,6 +331,27 @@ export default function MatchInboxScreen() {
                   })
                 }
                 reviewed={!pendingReviewMatchIds.has(match.id)}
+              />
+            ))
+          )
+        ) : null}
+
+        {activeTab === 'sent' ? (
+          sentRequests.length === 0 ? (
+            <EmptyState tab="sent" />
+          ) : (
+            sentRequests.map(request => (
+              <MatchCard
+                key={request.id}
+                variant="sent"
+                activityTitle={request.activityTitle}
+                categoryIcon={request.categoryIcon}
+                category={request.categoryName}
+                companionName={request.hostName}
+                companionTrustScore={request.hostTrustScore}
+                dateLabel={request.dateLabel}
+                neighborhood={request.neighborhood}
+                requestStatus={request.status}
               />
             ))
           )

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Text,
   View,
@@ -10,6 +10,8 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Linking,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MessageBubble } from '@/components/ui/message-bubble';
@@ -21,10 +23,20 @@ import { useAuth } from '@/lib/auth-context';
 import { getErrorMessage, isConfigError } from '@/lib/errors';
 import { getMessages, sendMessage as sendChatMessage, subscribeToMessages, type ChatMessageView } from '@/services/chat';
 import { getMatchById, type MatchDetailView } from '@/services/matches';
+import { blockUser, reportUser } from '@/services/safety';
+
+const REPORT_REASONS = [
+  'Inappropriate messages',
+  'Harassment or abuse',
+  'No-show',
+  'Fake profile',
+  'Other',
+];
 
 export default function ChatScreen() {
   const { matchId, returnTo } = useLocalSearchParams<{ matchId: string; returnTo?: string }>();
   const { user } = useAuth();
+  const router = useRouter();
 
   const [messages, setMessages] = useState<ChatMessageView[]>([]);
   const [text, setText] = useState('');
@@ -113,6 +125,94 @@ export default function ChatScreen() {
     }
   };
 
+  const handleSOS = () => {
+    if (!match) return;
+
+    const shareMessage = `Safety check-in: I'm meeting ${match.companionName} for "${match.activityTitle}" in ${match.neighborhood} on ${match.dateLabel}. Please check in with me after.`;
+
+    Alert.alert(
+      'SOS — Are you safe?',
+      'Choose an option below.',
+      [
+        {
+          text: 'Call emergency services',
+          style: 'destructive',
+          onPress: () => void Linking.openURL('tel:112'),
+        },
+        {
+          text: 'Share check-in message',
+          onPress: () => void Share.share({ message: shareMessage }),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  const handleBlockReport = () => {
+    if (!user || !match) return;
+
+    Alert.alert(
+      match.companionName,
+      'What would you like to do?',
+      [
+        {
+          text: `Report ${match.companionName}`,
+          onPress: () => {
+            Alert.alert(
+              'Report',
+              'Why are you reporting this person?',
+              [
+                ...REPORT_REASONS.map(reason => ({
+                  text: reason,
+                  onPress: async () => {
+                    try {
+                      await reportUser(user.id, match.companionId, reason, 'match', matchId!);
+                      Alert.alert('Report submitted', 'Thank you. We will review this report.');
+                    } catch {
+                      Alert.alert('Error', 'Could not submit your report. Please try again.');
+                    }
+                  },
+                })),
+                { text: 'Cancel', style: 'cancel' },
+              ]
+            );
+          },
+        },
+        {
+          text: `Block ${match.companionName}`,
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              `Block ${match.companionName}?`,
+              'They will not be able to see your activities or send you requests. You can unblock them in Settings.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Block',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      await blockUser(user.id, match.companionId);
+                      Alert.alert('Blocked', `${match.companionName} has been blocked.`, [
+                        {
+                          text: 'OK',
+                          onPress: () => router.replace('/(tabs)/inbox'),
+                        },
+                      ]);
+                    } catch {
+                      Alert.alert('Error', 'Could not block this user. Please try again.');
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <View className="flex-1 bg-neutral-50 items-center justify-center">
@@ -168,6 +268,22 @@ export default function ChatScreen() {
           </View>
         </View>
 
+        <View className="flex-row items-center gap-1">
+          <Pressable
+            onPress={handleSOS}
+            className="w-9 h-9 rounded-full bg-red-100 items-center justify-center"
+            accessibilityLabel="SOS emergency"
+            accessibilityRole="button"
+          >
+            <IconSymbol name="exclamationmark.shield.fill" size={18} color="#dc2626" />
+          </Pressable>
+          <NavIconButton
+            icon="ellipsis"
+            onPress={handleBlockReport}
+            size={36}
+            variant="plain"
+          />
+        </View>
       </View>
 
       <KeyboardAvoidingView

@@ -1,7 +1,7 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Share, Text, View } from 'react-native';
 import { IconSymbol } from './icon-symbol';
 
-type MatchCardVariant = 'pending' | 'confirmed' | 'completed';
+type MatchCardVariant = 'pending' | 'confirmed' | 'completed' | 'sent';
 
 interface MatchCardProps {
   activityTitle: string;
@@ -17,7 +17,10 @@ interface MatchCardProps {
   onChat?: () => void;
   onView?: () => void;
   onReview?: () => void;
+  onComplete?: () => void;
+  onShareCheckin?: () => void;
   reviewed?: boolean;
+  requestStatus?: 'pending' | 'accepted' | 'declined';
 }
 
 export function MatchCard({
@@ -34,7 +37,10 @@ export function MatchCard({
   onChat,
   onView,
   onReview,
+  onComplete,
+  onShareCheckin,
   reviewed = false,
+  requestStatus,
 }: MatchCardProps) {
   return (
     <View className="bg-white rounded-2xl border border-neutral-100 p-4 mb-3">
@@ -107,7 +113,45 @@ export function MatchCard({
             <Text className="text-sm text-neutral-500 ml-1">Reviewed</Text>
           </View>
         )}
+
+        {variant === 'sent' && requestStatus === 'pending' && (
+          <View className="bg-neutral-100 rounded-xl px-3 py-2">
+            <Text className="text-xs font-medium text-neutral-500">Pending</Text>
+          </View>
+        )}
+
+        {variant === 'sent' && requestStatus === 'accepted' && (
+          <View className="flex-row items-center bg-green-50 rounded-xl px-3 py-2">
+            <IconSymbol name="checkmark.circle.fill" size={13} color="#16a34a" />
+            <Text className="text-xs font-medium text-green-700 ml-1">Accepted</Text>
+          </View>
+        )}
+
+        {variant === 'sent' && requestStatus === 'declined' && (
+          <View className="bg-neutral-100 rounded-xl px-3 py-2">
+            <Text className="text-xs font-medium text-neutral-400">Declined</Text>
+          </View>
+        )}
       </View>
+
+      {variant === 'confirmed' && (
+        <>
+          <View className="h-px bg-neutral-100 mt-3" />
+          <View className="flex-row items-center justify-between pt-3">
+            <Pressable
+              onPress={onShareCheckin}
+              className="flex-row items-center"
+              accessibilityLabel="Share check-in"
+            >
+              <IconSymbol name="person.badge.shield.checkmark.fill" size={13} color="#c3653c" />
+              <Text className="text-xs font-medium text-primary-600 ml-1">Share check-in</Text>
+            </Pressable>
+            <Pressable onPress={onComplete}>
+              <Text className="text-xs font-medium text-neutral-400">Mark as completed</Text>
+            </Pressable>
+          </View>
+        </>
+      )}
     </View>
   );
 }
