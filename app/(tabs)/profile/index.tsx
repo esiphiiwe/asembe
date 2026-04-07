@@ -12,6 +12,7 @@ import { getErrorMessage, isConfigError, isSetupError } from '@/lib/errors';
 import { getUserActivities, type UserActivityView } from '@/services/activities';
 import { getReviewsForUser, type UserReviewView } from '@/services/reviews';
 import { getUserPreferences, type UserPreferenceView } from '@/services/profiles';
+import { formatTrustScore } from '@/lib/trust-score';
 
 export default function ProfileScreen() {
   const { user: authUser, profile, refreshProfile, isLoading: authLoading, error: authError } = useAuth();
@@ -191,7 +192,7 @@ export default function ProfileScreen() {
         </View>
 
         <View className="flex-row items-center justify-center mx-6 bg-white rounded-2xl border border-neutral-100 py-2 mb-6">
-          <StatBadge label="Trust Score" value={trustScore.toFixed(1)} icon="star.fill" />
+          <StatBadge label="Trust Score" value={formatTrustScore(trustScore)} icon="star.fill" />
           <View className="w-px h-8 bg-neutral-100" />
           <StatBadge label="Activities" value={myActivities.length} icon="calendar" />
           <View className="w-px h-8 bg-neutral-100" />

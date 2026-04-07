@@ -12,6 +12,7 @@ import { getErrorMessage, isConfigError, isDuplicateError } from '@/lib/errors';
 import { getActivityById, type ActivityDetailView } from '@/services/activities';
 import { createMatchRequest } from '@/services/matches';
 import { reportUser } from '@/services/safety';
+import { formatTrustScore } from '@/lib/trust-score';
 
 const REPORT_REASONS = [
   'Inappropriate content',
@@ -233,7 +234,7 @@ export default function ActivityDetailScreen() {
               <View className="flex-row items-center mt-0.5">
                 <IconSymbol name="star.fill" size={13} color="#d17a47" />
                 <Text className="text-sm text-neutral-600 ml-1">
-                  {Number(poster.trustScore).toFixed(1)} trust score
+                  {formatTrustScore(Number(poster.trustScore))} trust score
                 </Text>
                 {poster.verified ? (
                   <View className="flex-row items-center ml-2">
@@ -301,7 +302,7 @@ export default function ActivityDetailScreen() {
                   <Text className="text-sm font-medium text-neutral-900">{poster.name.split(' ')[0]}</Text>
                   <View className="flex-row items-center">
                     <IconSymbol name="star.fill" size={10} color="#d17a47" />
-                    <Text className="text-xs text-neutral-500 ml-0.5">{Number(poster.trustScore).toFixed(1)}</Text>
+                    <Text className="text-xs text-neutral-500 ml-0.5">{formatTrustScore(Number(poster.trustScore))}</Text>
                   </View>
                 </View>
               </View>

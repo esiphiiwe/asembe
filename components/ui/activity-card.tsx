@@ -1,5 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
 import { IconSymbol } from './icon-symbol';
+import { formatTrustScore } from '@/lib/trust-score';
 
 interface ActivityCardProps {
   title: string;
@@ -63,7 +64,7 @@ export function ActivityCard({
             </View>
             <View className="flex-row items-center">
               <IconSymbol name="star.fill" size={12} color="#d17a47" />
-              <Text className="text-sm text-neutral-600 ml-0.5">{trustScore.toFixed(1)}</Text>
+              <Text className="text-sm text-neutral-600 ml-0.5">{formatTrustScore(trustScore)}</Text>
             </View>
           </View>
           <View className="flex-row items-center mt-1.5">
@@ -116,7 +117,7 @@ export function ActivityCard({
               </Text>
             </View>
             <IconSymbol name="star.fill" size={11} color="#d17a47" />
-            <Text className="text-xs text-neutral-600 ml-0.5">{trustScore.toFixed(1)}</Text>
+            <Text className="text-xs text-neutral-600 ml-0.5">{formatTrustScore(trustScore)}</Text>
           </View>
         </View>
       </View>
