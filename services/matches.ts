@@ -296,40 +296,24 @@ export async function respondToRequest(
   posterId?: string
 ) {
   const supabase = getSupabaseClient();
-  const { error: updateError } = await supabase
-    .from('match_requests')
-    .update({ status })
-    .eq('id', requestId);
-
-  if (updateError) throw updateError;
 
   if (status === 'accepted' && activityId && requesterId && posterId) {
-    const { error: matchError } = await supabase
-      .from('matches')
-      .insert({
-        activity_id: activityId,
-        user1_id: posterId,
-        user2_id: requesterId,
-        status: 'confirmed',
-      });
+    // All four writes run inside a single Postgres transaction via RPC so a
+    // mid-flight failure cannot leave the database in an inconsistent state.
+    const { error: rpcError } = await supabase.rpc('accept_match_request', {
+      p_request_id: requestId,
+      p_activity_id: activityId,
+      p_requester_id: requesterId,
+    });
 
-    if (matchError) throw matchError;
-
-    const { error: activityError } = await supabase
-      .from('activities')
-      .update({ status: 'matched' })
-      .eq('id', activityId);
-
-    if (activityError) throw activityError;
-
-    const { error: declineOthersError } = await supabase
+    if (rpcError) throw rpcError;
+  } else {
+    const { error: updateError } = await supabase
       .from('match_requests')
-      .update({ status: 'declined' })
-      .eq('activity_id', activityId)
-      .eq('status', 'pending')
-      .neq('id', requestId);
+      .update({ status })
+      .eq('id', requestId);
 
-    if (declineOthersError) throw declineOthersError;
+    if (updateError) throw updateError;
   }
 
   // Notify the requester about the outcome (fire-and-forget)

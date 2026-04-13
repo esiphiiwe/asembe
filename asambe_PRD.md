@@ -230,7 +230,16 @@ EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY
 
 ---
 
-## 13. First Build Order (recommended)
+## 13. Security Fixes Log
+
+### P0 — Resolved
+
+- [x] **Placeholder in `.env.example`** — Replaced real Supabase anon JWT (which referenced live project `vtxnrythmdkpmnqdzzaf`) with `your-supabase-anon-key` placeholder. Live key should be rotated in the Supabase dashboard.
+- [x] **Atomic match acceptance** — `respondToRequest` four-step sequential write (update request → insert match → update activity status → decline other requests) replaced with `accept_match_request` Postgres RPC (migration `011`). All four writes now execute in a single transaction; a mid-flight failure can no longer leave the database in an inconsistent state.
+
+---
+
+## 14. First Build Order (recommended)
 
 1. [x] Expo project setup + navigation structure (Expo Router)
 2. [x] Auth flow — signup (multi-step), login, landing screen (wired to Supabase Auth)
