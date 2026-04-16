@@ -236,6 +236,11 @@ EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY
 
 - [x] **Placeholder in `.env.example`** — Replaced real Supabase anon JWT (which referenced live project `vtxnrythmdkpmnqdzzaf`) with `your-supabase-anon-key` placeholder. Live key should be rotated in the Supabase dashboard.
 - [x] **Atomic match acceptance** — `respondToRequest` four-step sequential write (update request → insert match → update activity status → decline other requests) replaced with `accept_match_request` Postgres RPC (migration `011`). All four writes now execute in a single transaction; a mid-flight failure can no longer leave the database in an inconsistent state.
+- [x] **Global error boundary** — `ErrorBoundary` class component (`components/error-boundary.tsx`) wraps the app tree in `app/_layout.tsx`. Catches React render errors and shows a recovery screen instead of crashing.
+- [x] **Subscription checkout auth fix** — `app/subscription.tsx` was sending `Authorization: Bearer <anon key>` to `create-checkout-session`; the Edge Function called `getUser()` which returned null. Now sends the user's session JWT as `Authorization` and the anon key as `apikey`, matching the standard Supabase Edge Function auth pattern.
+- [x] **Email HTML injection fix** — `send-notification` Edge Function now escapes user-generated content (names, activity titles) via `escapeHtml()` before interpolating into email HTML. Also added JWT verification using the anon-client + auth-header pattern so the function no longer accepts any non-empty `Authorization` string.
+- [x] **Offline detection** — Installed `@react-native-community/netinfo`; `NetworkProvider` (`lib/network-context.tsx`) exposes `useNetwork()` hook; `OfflineBanner` (`components/ui/offline-banner.tsx`) renders a dark bar when connectivity is lost. Wired into root layout.
+- [x] **Client-side rate limiting** — `useThrottle` hook (`hooks/use-throttle.ts`) drops repeated calls within a cooldown window. Applied to chat send (1 s) and match request-to-join (2 s) to prevent spam.
 
 ---
 
@@ -253,3 +258,21 @@ EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY
 10. [x] Freemium gating + Stripe integration
 11. [x] Safety features (verification, SOS, block / report, check-in, women-only filter) — Veriff hosted-flow fully wired (migration 010, `start-verification` + `veriff-webhook` Edge Functions, `services/verification.ts`)
 12. [x] Admin category management screen
+
+---
+
+## 15. Build & Test Infrastructure
+
+### EAS Build
+
+- [x] **`eas.json`** — Three build profiles configured: `development` (internal dev client builds with simulator support), `preview` (internal distribution with auto-increment for TestFlight / internal testing), `production` (store distribution with auto-increment for App Store / Google Play submission). Submit config included with placeholder Apple / Google credentials.
+- [x] **App store identifiers** — `expo.ios.bundleIdentifier` and `expo.android.package` set to `com.asambe.app` in `app.json`. Required for any native build via EAS.
+- [x] **Build scripts** — `build:dev`, `build:preview`, `build:prod` npm scripts added to `package.json` for convenience.
+
+### Testing
+
+- [x] **Test framework** — `jest-expo` (node preset), `@testing-library/react-native`, `@testing-library/jest-native`, `@types/jest` installed as dev dependencies. Jest configured in `package.json` with `jest-expo/node` preset, module path alias (`@/*`), and `transformIgnorePatterns` for Expo / React Native modules.
+- [x] **Unit tests — match scoring** (`__tests__/lib/match-score.test.ts`) — 14 tests covering `calculateMatchScore`: bad prior history suppression, same-city vs cross-city location weighting, fixed-date vs recurring timing, trust score delta thresholds, bidirectional age range compatibility, and full weighted-sum verification.
+- [x] **Unit tests — activity utils** (`__tests__/lib/activity-utils.test.ts`) — 14 tests covering `formatActivityDate` (null, ISO string, AM/PM, noon, midnight, Date object), `formatRecurrenceRule` (null, valid rule, malformed), and `formatActivitySchedule` dispatch logic.
+- [x] **Unit tests — trust score** (`__tests__/lib/trust-score.test.ts`) — 5 tests covering `formatTrustScore`: zero returns "New", integer / decimal / perfect / low scores formatted to one decimal.
+- [x] **Unit tests — error helpers** (`__tests__/lib/errors.test.ts`) — 13 tests covering `getErrorMessage` (Error instance, plain object, null, undefined, empty string fallback) and `isDuplicateError` (Postgres code 23505, message match, case-insensitivity, non-duplicate, null, non-object).
