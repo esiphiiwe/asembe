@@ -162,13 +162,22 @@ async function sendEmailNotification(
   return response.ok;
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function buildEmailHtml(title: string, body: string): string {
   return `
     <!DOCTYPE html>
     <html>
       <body style="font-family: Georgia, serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #fafaf9; color: #1c1917;">
-        <h2 style="font-size: 22px; margin-bottom: 12px;">${title}</h2>
-        <p style="font-size: 16px; line-height: 1.6; color: #57534e;">${body}</p>
+        <h2 style="font-size: 22px; margin-bottom: 12px;">${escapeHtml(title)}</h2>
+        <p style="font-size: 16px; line-height: 1.6; color: #57534e;">${escapeHtml(body)}</p>
         <p style="margin-top: 32px; font-size: 13px; color: #a8a29e;">
           Open the Asambe app to respond.
         </p>
@@ -183,7 +192,6 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // Verify the caller is authenticated
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -192,8 +200,22 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Use service role for reading recipient data (tokens, preferences, profiles)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+    // Verify the caller's JWT via the anon client
+    const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: userError } = await anonClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Use service role for reading recipient data (tokens, preferences, profiles)
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 

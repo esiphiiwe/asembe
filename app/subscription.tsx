@@ -7,6 +7,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/lib/auth-context';
 import { useSubscription } from '@/hooks/use-subscription';
 import { useBackNavigation } from '@/hooks/use-back-navigation';
+import { getSupabaseClient } from '@/lib/supabase';
 import type { SubscriptionTier } from '@/types/index';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
@@ -119,16 +120,23 @@ export default function SubscriptionScreen() {
 
     setUpgradingTo(plan.tier);
     try {
+      const supabase = getSupabaseClient();
+      const { data: { session: authSession } } = await supabase.auth.getSession();
+      if (!authSession?.access_token) {
+        Alert.alert('Session expired', 'Please sign in again to upgrade.');
+        return;
+      }
+
       const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
       const response = await fetch(`${SUPABASE_URL}/functions/v1/create-checkout-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${supabaseAnonKey}`,
+          Authorization: `Bearer ${authSession.access_token}`,
+          apikey: supabaseAnonKey,
         },
         body: JSON.stringify({
           priceId: plan.priceId,
-          userId: user.id,
           returnUrl: 'asambe://subscription',
         }),
       });

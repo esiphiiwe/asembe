@@ -21,6 +21,7 @@ import { ScreenState } from '@/components/ui/screen-state';
 import { useBackNavigation } from '@/hooks/use-back-navigation';
 import { useAuth } from '@/lib/auth-context';
 import { getErrorMessage, isConfigError } from '@/lib/errors';
+import { useThrottle } from '@/hooks/use-throttle';
 import { getMessages, sendMessage as sendChatMessage, subscribeToMessages, type ChatMessageView } from '@/services/chat';
 import { getMatchById, setKeepChatOpen, type MatchDetailView } from '@/services/matches';
 import { blockUser, reportUser } from '@/services/safety';
@@ -147,7 +148,7 @@ export default function ChatScreen() {
   const showKeepOpenBanner = (isExpired || isNearExpiry) && !bothKeptOpen;
   const expiryLabel = formatExpiryLabel(chatExpiresAt);
 
-  const handleSend = async () => {
+  const doSend = useCallback(async () => {
     if (!text.trim() || !user || !matchId || chatBlocked) return;
 
     const messageText = text.trim();
@@ -163,7 +164,9 @@ export default function ChatScreen() {
     } finally {
       setSending(false);
     }
-  };
+  }, [text, user, matchId, chatBlocked]);
+
+  const handleSend = useThrottle(doSend, 1000);
 
   const handleKeepOpen = async () => {
     if (!user || !matchId || !match || match.currentUserKeepOpen) return;

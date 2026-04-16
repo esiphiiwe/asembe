@@ -8,6 +8,9 @@ import './globals.css';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { NetworkProvider } from '@/lib/network-context';
+import { OfflineBanner } from '@/components/ui/offline-banner';
 
 function RootNavigation() {
   const colorScheme = useColorScheme();
@@ -40,6 +43,7 @@ function RootNavigation() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <OfflineBanner />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
@@ -57,8 +61,12 @@ function RootNavigation() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <RootNavigation />
-    </AuthProvider>
+    <ErrorBoundary>
+      <NetworkProvider>
+        <AuthProvider>
+          <RootNavigation />
+        </AuthProvider>
+      </NetworkProvider>
+    </ErrorBoundary>
   );
 }

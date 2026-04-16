@@ -13,6 +13,7 @@ import { getActivityById, type ActivityDetailView } from '@/services/activities'
 import { createMatchRequest } from '@/services/matches';
 import { reportUser } from '@/services/safety';
 import { formatTrustScore } from '@/lib/trust-score';
+import { useThrottle } from '@/hooks/use-throttle';
 
 const REPORT_REASONS = [
   'Inappropriate content',
@@ -56,7 +57,7 @@ export default function ActivityDetailScreen() {
     returnTo,
   });
 
-  const handleRequestToJoin = async () => {
+  const doRequestToJoin = useCallback(async () => {
     if (!user) {
       Alert.alert('Not signed in', 'Please sign in to request to join.');
       return;
@@ -101,7 +102,9 @@ export default function ActivityDetailScreen() {
     } finally {
       setRequesting(false);
     }
-  };
+  }, [user, activity, profile?.phone, canRequest, matchRequestLimit, id, router]);
+
+  const handleRequestToJoin = useThrottle(doRequestToJoin, 2000);
 
   const handleReport = () => {
     if (!user || !activity) return;
