@@ -3,6 +3,7 @@ import { Text, View, ScrollView, Pressable, FlatList, RefreshControl, ActivityIn
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
+import { palette } from '@/constants/colors';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { StatBadge } from '@/components/ui/stat-badge';
 import { ActivityCard } from '@/components/ui/activity-card';
@@ -63,7 +64,7 @@ export default function ProfileScreen() {
   if (authLoading || loading) {
     return (
       <View className="flex-1 bg-neutral-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#e8572a" />
+        <ActivityIndicator size="large" color={palette.accent} />
       </View>
     );
   }
@@ -143,7 +144,7 @@ export default function ProfileScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e8572a" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.accent} />
         }
       >
         <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
@@ -159,7 +160,7 @@ export default function ProfileScreen() {
             }
             className="w-10 h-10 bg-white border border-neutral-200 rounded-full items-center justify-center"
           >
-            <IconSymbol name="gearshape.fill" size={18} color="#44403c" />
+            <IconSymbol name="gearshape.fill" size={18} color={palette.neutral[700]} />
           </Pressable>
         </View>
 
@@ -180,13 +181,13 @@ export default function ProfileScreen() {
             )}
             {verified ? (
               <View className="absolute bottom-0 right-0 w-7 h-7 bg-green-500 rounded-full items-center justify-center border-2 border-neutral-50">
-                <IconSymbol name="checkmark.circle.fill" size={14} color="#fff" />
+                <IconSymbol name="checkmark.circle.fill" size={14} color={palette.white} />
               </View>
             ) : null}
           </View>
           <Text className="text-xl font-bold text-neutral-900 mt-3">{userName}</Text>
           <View className="flex-row items-center mt-1">
-            <IconSymbol name="mappin" size={13} color="#78716c" />
+            <IconSymbol name="mappin" size={13} color={palette.neutral[500]} />
             <Text className="text-sm text-neutral-500 ml-1">{city}, {country}</Text>
           </View>
         </View>
@@ -314,7 +315,7 @@ export default function ProfileScreen() {
                           key={index}
                           name="star.fill"
                           size={13}
-                          color={index < review.rating ? '#d17a47' : '#e7e5e4'}
+                          color={index < review.rating ? palette.primary[500] : palette.neutral[200]}
                         />
                       ))}
                     </View>

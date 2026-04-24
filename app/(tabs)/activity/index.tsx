@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { palette } from '@/constants/colors';
 import { FormInput } from '@/components/ui/form-input';
 import { AsambeButton } from '@/components/ui/asambe-button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -225,7 +226,7 @@ export default function PostActivityScreen() {
   if (loadingCategories) {
     return (
       <View className="flex-1 bg-neutral-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#e8572a" />
+        <ActivityIndicator size="large" color={palette.accent} />
       </View>
     );
   }
@@ -340,7 +341,7 @@ export default function PostActivityScreen() {
           >
             <View className="flex-1">
               <View className="flex-row items-center">
-                <IconSymbol name="clock" size={18} color="#78716c" />
+                <IconSymbol name="clock" size={18} color={palette.neutral[500]} />
                 <Text className="text-base text-neutral-700 ml-2">Recurring activity</Text>
                 {!canRecurring ? (
                   <View className="ml-2 bg-amber-100 px-2 py-0.5 rounded-full">
@@ -353,11 +354,11 @@ export default function PostActivityScreen() {
               <Switch
                 value={isRecurring}
                 onValueChange={setIsRecurring}
-                trackColor={{ false: '#e7e5e4', true: '#e8572a' }}
-                thumbColor="#fff"
+                trackColor={{ false: palette.neutral[200], true: palette.accent }}
+                thumbColor={palette.white}
               />
             ) : (
-              <IconSymbol name="lock.fill" size={16} color="#a8a29e" />
+              <IconSymbol name="lock.fill" size={16} color={palette.neutral[400]} />
             )}
           </Pressable>
 
@@ -452,7 +453,7 @@ export default function PostActivityScreen() {
           <View className="flex-row items-center justify-between mb-6 bg-white rounded-xl border border-neutral-200 px-4 py-3">
             <View className="flex-1 mr-3">
               <View className="flex-row items-center">
-                <IconSymbol name="person.fill" size={16} color="#78716c" />
+                <IconSymbol name="person.fill" size={16} color={palette.neutral[500]} />
                 <Text className="text-base text-neutral-700 ml-2">Women companions only</Text>
               </View>
               <Text className="text-xs text-neutral-400 mt-1 ml-6">
@@ -462,8 +463,8 @@ export default function PostActivityScreen() {
             <Switch
               value={womenOnly}
               onValueChange={setWomenOnly}
-              trackColor={{ false: '#e7e5e4', true: '#e8572a' }}
-              thumbColor="#fff"
+              trackColor={{ false: palette.neutral[200], true: palette.accent }}
+              thumbColor={palette.white}
             />
           </View>
 

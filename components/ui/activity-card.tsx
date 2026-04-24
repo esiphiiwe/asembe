@@ -1,4 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
+import { palette } from '@/constants/colors';
 import { IconSymbol } from './icon-symbol';
 import { formatTrustScore } from '@/lib/trust-score';
 
@@ -46,7 +47,7 @@ export function ActivityCard({
             </View>
           ) : null}
           <Pressable className="absolute top-3 right-3 bg-white/90 rounded-full w-8 h-8 items-center justify-center">
-            <IconSymbol name="heart" size={16} color="#1c1917" />
+            <IconSymbol name="heart" size={16} color={palette.neutral[900]} />
           </Pressable>
         </View>
         <View className="mt-2.5">
@@ -54,16 +55,16 @@ export function ActivityCard({
             {title}
           </Text>
           <View className="flex-row items-center mt-1">
-            <IconSymbol name="mappin" size={12} color="#78716c" />
+            <IconSymbol name="mappin" size={12} color={palette.neutral[500]} />
             <Text className="text-sm text-neutral-500 ml-1">{neighborhood}</Text>
           </View>
           <View className="flex-row items-center justify-between mt-1.5">
             <View className="flex-row items-center">
-              <IconSymbol name="calendar" size={12} color="#78716c" />
+              <IconSymbol name="calendar" size={12} color={palette.neutral[500]} />
               <Text className="text-sm text-neutral-500 ml-1">{dateLabel}</Text>
             </View>
             <View className="flex-row items-center">
-              <IconSymbol name="star.fill" size={12} color="#d17a47" />
+              <IconSymbol name="star.fill" size={12} color={palette.primary[500]} />
               <Text className="text-sm text-neutral-600 ml-0.5">{formatTrustScore(trustScore)}</Text>
             </View>
           </View>
@@ -107,7 +108,7 @@ export function ActivityCard({
         </View>
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center">
-            <IconSymbol name="mappin" size={12} color="#78716c" />
+            <IconSymbol name="mappin" size={12} color={palette.neutral[500]} />
             <Text className="text-sm text-neutral-500 ml-1">{neighborhood}</Text>
           </View>
           <View className="flex-row items-center">
@@ -116,7 +117,7 @@ export function ActivityCard({
                 {posterName.charAt(0)}
               </Text>
             </View>
-            <IconSymbol name="star.fill" size={11} color="#d17a47" />
+            <IconSymbol name="star.fill" size={11} color={palette.primary[500]} />
             <Text className="text-xs text-neutral-600 ml-0.5">{formatTrustScore(trustScore)}</Text>
           </View>
         </View>

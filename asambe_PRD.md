@@ -188,7 +188,18 @@ Matching is a scored function between a requester and an activity poster. Higher
 
 - **Tone:** Warm, confident, direct. Not cutesy. Not corporate.
 - **Visual direction:** Warm editorial — film grain aesthetic, strong typography, intimate photography of real activities
-- **Color palette:** To be defined — lean warm neutrals with one bold accent
+- **Color palette (Saffron):** lean warm neutrals with one bold saffron accent.
+  - **Accent:** `#e8902a` — used for primary CTAs, brand moments, selected states, tab highlights
+  - **Primary (clay) scale 50–900:** `#fdf8f3, #f9ecde, #f1d3b3, #e6b380, #d89358, #c97838, #a8622f, #875027, #6e4322, #5b391e` — used for secondary brand fills, star ratings, verified-icon tints, and soft backgrounds
+  - **Neutral (stone) scale 50–900:** `#fafaf9, #f5f5f4, #e7e5e4, #d6d3d1, #a8a29e, #78716c, #57534e, #44403c, #292524, #1c1917` — used for all text, icons, borders, and surfaces
+  - **Semantic tokens:** `success #16a34a`, `danger #dc2626`, `warning #f59e0b`, `info #0284c7`
+
+### Design tokens
+
+- `tailwind.config.js` and `constants/colors.ts` are the single source of truth for all color references. Every Tailwind class maps 1:1 to a constant exported from `palette` in `constants/colors.ts`.
+- React Native props that don't accept `className` (e.g. `color`, `tintColor`, `trackColor`, `placeholderTextColor`, `ActivityIndicator color`) MUST use `palette.*` constants, never inline hex.
+- Raw hex literals are not allowed inside `app/` or `components/`. The `npm test` script runs `scripts/check-no-hex.mjs` to guard this invariant.
+- Adding a new color: add it to both `tailwind.config.js` (if it needs a className) and `constants/colors.ts` (always). Never duplicate a color across the codebase.
 - **Typography:** Serif for headings (feels editorial), sans-serif for UI (feels clean)
 - **No friendship language anywhere** — companion, activity partner, co-explorer only
 - **No social graph features** — no follower counts, no friend lists, no public connections
@@ -258,6 +269,7 @@ EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY
 10. [x] Freemium gating + Stripe integration
 11. [x] Safety features (verification, SOS, block / report, check-in, women-only filter) — Veriff hosted-flow fully wired (migration 010, `start-verification` + `veriff-webhook` Edge Functions, `services/verification.ts`)
 12. [x] Admin category management screen
+13. [x] Design system lock — Saffron palette formalized (`constants/colors.ts` + `tailwind.config.js` as single source of truth), semantic tokens (`success`/`danger`/`warning`/`info`) added, ~24 files in `app/` and `components/` refactored from inline hex to `palette.*` references, Expo-template blue removed from `components/themed-text.tsx`, `constants/theme.ts` now reads from `constants/colors.ts`
 
 ---
 
@@ -276,3 +288,4 @@ EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY
 - [x] **Unit tests — activity utils** (`__tests__/lib/activity-utils.test.ts`) — 14 tests covering `formatActivityDate` (null, ISO string, AM/PM, noon, midnight, Date object), `formatRecurrenceRule` (null, valid rule, malformed), and `formatActivitySchedule` dispatch logic.
 - [x] **Unit tests — trust score** (`__tests__/lib/trust-score.test.ts`) — 5 tests covering `formatTrustScore`: zero returns "New", integer / decimal / perfect / low scores formatted to one decimal.
 - [x] **Unit tests — error helpers** (`__tests__/lib/errors.test.ts`) — 13 tests covering `getErrorMessage` (Error instance, plain object, null, undefined, empty string fallback) and `isDuplicateError` (Postgres code 23505, message match, case-insensitivity, non-duplicate, null, non-object).
+- [x] **Design-token guard** (`scripts/check-no-hex.mjs`) — Scans `app/` and `components/` for quoted hex literals (`"#rgb"`, `"#rrggbb"`, etc.) and exits non-zero if any are found. Wired into `npm test` via the `check:no-hex` script (`"test": "npm run check:no-hex && jest"`) so regressions break CI before Jest even runs.

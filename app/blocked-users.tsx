@@ -3,6 +3,7 @@ import { Text, View, ScrollView, Alert, ActivityIndicator, Pressable } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
+import { palette } from '@/constants/colors';
 import { NavIconButton } from '@/components/ui/nav-icon-button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useBackNavigation } from '@/hooks/use-back-navigation';
@@ -59,7 +60,7 @@ export default function BlockedUsersScreen() {
   if (loading) {
     return (
       <View className="flex-1 bg-neutral-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#e8572a" />
+        <ActivityIndicator size="large" color={palette.accent} />
       </View>
     );
   }
@@ -80,7 +81,7 @@ export default function BlockedUsersScreen() {
         {blockedUsers.length === 0 ? (
           <View className="items-center py-12">
             <View className="w-16 h-16 bg-neutral-100 rounded-full items-center justify-center mb-4">
-              <IconSymbol name="nosign" size={28} color="#a8a29e" />
+              <IconSymbol name="nosign" size={28} color={palette.neutral[400]} />
             </View>
             <Text className="text-base font-semibold text-neutral-700 mb-1">No blocked users</Text>
             <Text className="text-sm text-neutral-400 text-center leading-5">

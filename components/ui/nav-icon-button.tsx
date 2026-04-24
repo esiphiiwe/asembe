@@ -1,5 +1,6 @@
 import { ComponentProps } from 'react';
 import { Pressable, PressableProps, StyleProp, ViewStyle } from 'react-native';
+import { palette } from '@/constants/colors';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 type IconName = ComponentProps<typeof IconSymbol>['name'];
@@ -22,7 +23,7 @@ type NavIconButtonProps = Omit<PressableProps, 'style'> & {
 
 export function NavIconButton({
   icon,
-  iconColor = '#1c1917',
+  iconColor = palette.neutral[900],
   iconSize = 20,
   size = 40,
   style,

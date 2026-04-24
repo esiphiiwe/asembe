@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
+import { palette } from '@/constants/colors';
 import { FormInput } from '@/components/ui/form-input';
 import { AsambeButton } from '@/components/ui/asambe-button';
 import { CategoryChip } from '@/components/ui/category-chip';
@@ -311,7 +312,7 @@ export default function SignUpScreen() {
                     />
                   ) : (
                     <>
-                      <IconSymbol name="camera.fill" size={28} color="#a8a29e" />
+                      <IconSymbol name="camera.fill" size={28} color={palette.neutral[400]} />
                       <Text className="text-xs text-neutral-400 mt-1">Add photo</Text>
                     </>
                   )}

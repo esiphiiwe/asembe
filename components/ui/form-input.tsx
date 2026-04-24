@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Text, TextInput, View, type TextInputProps } from 'react-native';
+import { palette } from '@/constants/colors';
 
 interface FormInputProps extends Omit<TextInputProps, 'className'> {
   label: string;
@@ -35,7 +36,7 @@ export function FormInput({
         secureTextEntry={secureTextEntry}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        placeholderTextColor="#a8a29e"
+        placeholderTextColor={palette.neutral[400]}
         className={`bg-white border ${borderClass} rounded-xl px-4 py-3.5 text-base text-neutral-900`}
         {...rest}
       />

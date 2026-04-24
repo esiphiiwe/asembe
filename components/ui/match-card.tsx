@@ -1,4 +1,5 @@
 import { Pressable, Share, Text, View } from 'react-native';
+import { palette } from '@/constants/colors';
 import { IconSymbol } from './icon-symbol';
 
 type MatchCardVariant = 'pending' | 'confirmed' | 'completed' | 'sent';
@@ -59,11 +60,11 @@ export function MatchCard({
           <View className="flex-row items-center mt-1">
             <Text className="text-xs text-primary-600 font-medium capitalize">{category}</Text>
             <Text className="text-xs text-neutral-300 mx-1.5">|</Text>
-            <IconSymbol name="mappin" size={11} color="#78716c" />
+            <IconSymbol name="mappin" size={11} color={palette.neutral[500]} />
             <Text className="text-xs text-neutral-500 ml-0.5">{neighborhood}</Text>
           </View>
           <View className="flex-row items-center mt-1">
-            <IconSymbol name="calendar" size={11} color="#78716c" />
+            <IconSymbol name="calendar" size={11} color={palette.neutral[500]} />
             <Text className="text-xs text-neutral-500 ml-1">{dateLabel}</Text>
           </View>
         </View>
@@ -83,7 +84,7 @@ export function MatchCard({
         <View className="ml-2 flex-1">
           <Text className="text-sm font-medium text-neutral-800">{companionName}</Text>
           <View className="flex-row items-center">
-            <IconSymbol name="star.fill" size={11} color="#d17a47" />
+            <IconSymbol name="star.fill" size={11} color={palette.primary[500]} />
             <Text className="text-xs text-neutral-500 ml-0.5">{companionTrustScore.toFixed(1)}</Text>
           </View>
         </View>
@@ -118,7 +119,7 @@ export function MatchCard({
 
         {variant === 'completed' && reviewed && (
           <View className="flex-row items-center bg-neutral-50 rounded-xl px-3 py-2">
-            <IconSymbol name="checkmark.circle.fill" size={14} color="#16a34a" />
+            <IconSymbol name="checkmark.circle.fill" size={14} color={palette.success} />
             <Text className="text-sm text-neutral-500 ml-1">Reviewed</Text>
           </View>
         )}
@@ -131,7 +132,7 @@ export function MatchCard({
 
         {variant === 'sent' && requestStatus === 'accepted' && (
           <View className="flex-row items-center bg-green-50 rounded-xl px-3 py-2">
-            <IconSymbol name="checkmark.circle.fill" size={13} color="#16a34a" />
+            <IconSymbol name="checkmark.circle.fill" size={13} color={palette.success} />
             <Text className="text-xs font-medium text-green-700 ml-1">Accepted</Text>
           </View>
         )}
@@ -152,7 +153,7 @@ export function MatchCard({
               className="flex-row items-center"
               accessibilityLabel="Share check-in"
             >
-              <IconSymbol name="person.badge.shield.checkmark.fill" size={13} color="#c3653c" />
+              <IconSymbol name="person.badge.shield.checkmark.fill" size={13} color={palette.primary[600]} />
               <Text className="text-xs font-medium text-primary-600 ml-1">Share check-in</Text>
             </Pressable>
             <Pressable onPress={onComplete}>

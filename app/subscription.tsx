@@ -3,6 +3,7 @@ import { Text, View, ScrollView, Pressable, Alert, ActivityIndicator } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
+import { palette } from '@/constants/colors';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/lib/auth-context';
 import { useSubscription } from '@/hooks/use-subscription';
@@ -166,7 +167,7 @@ export default function SubscriptionScreen() {
   if (isLoading) {
     return (
       <View className="flex-1 bg-neutral-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#e8572a" />
+        <ActivityIndicator size="large" color={palette.accent} />
       </View>
     );
   }
@@ -176,7 +177,7 @@ export default function SubscriptionScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View className="px-6 pt-2 pb-2">
           <Pressable onPress={handleBack} className="w-10 h-10 items-center justify-center -ml-2">
-            <IconSymbol name="arrow.left" size={20} color="#44403c" />
+            <IconSymbol name="arrow.left" size={20} color={palette.neutral[700]} />
           </Pressable>
 
           <Text className="mt-4 font-serif text-3xl font-bold text-neutral-900">
@@ -221,7 +222,7 @@ export default function SubscriptionScreen() {
                     </Text>
                     {isCurrent ? (
                       <View className="flex-row items-center bg-green-100 px-2.5 py-1 rounded-full">
-                        <IconSymbol name="checkmark" size={12} color="#16a34a" />
+                        <IconSymbol name="checkmark" size={12} color={palette.success} />
                         <Text className="text-xs font-semibold text-green-700 ml-1">Current</Text>
                       </View>
                     ) : null}
@@ -235,7 +236,7 @@ export default function SubscriptionScreen() {
                   <View className="gap-2 mb-5">
                     {plan.perks.map(perk => (
                       <View key={perk} className="flex-row items-start">
-                        <IconSymbol name="checkmark.circle.fill" size={16} color="#e8572a" />
+                        <IconSymbol name="checkmark.circle.fill" size={16} color={palette.accent} />
                         <Text className="text-sm text-neutral-600 ml-2 flex-1">{perk}</Text>
                       </View>
                     ))}
@@ -250,7 +251,7 @@ export default function SubscriptionScreen() {
                       } ${isUpgrading ? 'opacity-60' : ''}`}
                     >
                       {isUpgrading ? (
-                        <ActivityIndicator size="small" color="#fff" />
+                        <ActivityIndicator size="small" color={palette.white} />
                       ) : (
                         <Text className="text-sm font-semibold text-white">
                           Upgrade to {plan.name}

@@ -1,4 +1,5 @@
 import { Text, View } from 'react-native';
+import { palette } from '@/constants/colors';
 import { IconSymbol } from './icon-symbol';
 
 interface StatBadgeProps {
@@ -15,7 +16,7 @@ export function StatBadge({ label, value, icon }: StatBadgeProps) {
           <IconSymbol
             name={icon}
             size={16}
-            color={icon === 'star.fill' ? '#d17a47' : '#78716c'}
+            color={icon === 'star.fill' ? palette.primary[500] : palette.neutral[500]}
           />
         )}
         <Text className={`text-xl font-bold text-neutral-900 ${icon ? 'ml-1' : ''}`}>

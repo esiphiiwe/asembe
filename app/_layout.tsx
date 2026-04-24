@@ -6,6 +6,7 @@ import { ActivityIndicator, View } from 'react-native';
 import 'react-native-reanimated';
 import './globals.css';
 
+import { palette } from '@/constants/colors';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -36,7 +37,7 @@ function RootNavigation() {
   if (isLoading) {
     return (
       <View className="flex-1 bg-neutral-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#e8572a" />
+        <ActivityIndicator size="large" color={palette.accent} />
       </View>
     );
   }

@@ -3,6 +3,7 @@ import { Text, View, ScrollView, Pressable, Alert, TextInput } from 'react-nativ
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
+import { palette } from '@/constants/colors';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { AsambeButton } from '@/components/ui/asambe-button';
 import { NavIconButton } from '@/components/ui/nav-icon-button';
@@ -81,7 +82,7 @@ export default function ReviewScreen() {
         <View className="flex-1 items-center justify-center px-8">
           <Animated.View entering={FadeIn.duration(500)} className="items-center">
             <View className="w-20 h-20 bg-green-100 rounded-full items-center justify-center mb-6">
-              <IconSymbol name="checkmark.circle.fill" size={40} color="#16a34a" />
+              <IconSymbol name="checkmark.circle.fill" size={40} color={palette.success} />
             </View>
             <Text className="font-serif text-2xl font-bold text-neutral-900 text-center mb-2">
               Thanks for your review
@@ -163,7 +164,7 @@ export default function ReviewScreen() {
                   <IconSymbol
                     name="star.fill"
                     size={36}
-                    color={star <= rating ? '#d17a47' : '#e7e5e4'}
+                    color={star <= rating ? palette.primary[500] : palette.neutral[200]}
                   />
                 </Pressable>
               ))}
@@ -182,7 +183,7 @@ export default function ReviewScreen() {
               value={comment}
               onChangeText={setComment}
               placeholder="How was the experience? Would you recommend them as a companion?"
-              placeholderTextColor="#a8a29e"
+              placeholderTextColor={palette.neutral[400]}
               multiline
               numberOfLines={4}
               className="bg-white border border-neutral-200 rounded-xl px-4 py-3 text-base text-neutral-900 min-h-[100px]"
@@ -201,7 +202,7 @@ export default function ReviewScreen() {
                   flagged ? 'bg-red-600 border-red-600' : 'border-neutral-300'
                 }`}
               >
-                {flagged && <IconSymbol name="checkmark" size={12} color="#fff" />}
+                {flagged && <IconSymbol name="checkmark" size={12} color={palette.white} />}
               </View>
               <View className="flex-1">
                 <Text className="text-base font-medium text-neutral-800">
@@ -211,7 +212,7 @@ export default function ReviewScreen() {
                   Report unsafe behaviour or a policy violation
                 </Text>
               </View>
-              <IconSymbol name="flag.fill" size={16} color={flagged ? '#dc2626' : '#a8a29e'} />
+              <IconSymbol name="flag.fill" size={16} color={flagged ? palette.danger : palette.neutral[400]} />
             </Pressable>
 
             {flagged && (
@@ -220,7 +221,7 @@ export default function ReviewScreen() {
                   value={flagReason}
                   onChangeText={setFlagReason}
                   placeholder="Please describe what happened..."
-                  placeholderTextColor="#a8a29e"
+                  placeholderTextColor={palette.neutral[400]}
                   multiline
                   numberOfLines={3}
                   className="bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm text-neutral-900 min-h-[80px]"

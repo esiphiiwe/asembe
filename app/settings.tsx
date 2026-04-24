@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
+import { palette } from '@/constants/colors';
 import { NavIconButton } from '@/components/ui/nav-icon-button';
 import { SettingsRow } from '@/components/ui/settings-row';
 import { useBackNavigation } from '@/hooks/use-back-navigation';
@@ -206,11 +207,11 @@ export default function SettingsScreen() {
                     ? undefined
                     : 'Not verified'
               }
-              iconColor={profile?.verified ? '#16a34a' : '#a8a29e'}
+              iconColor={profile?.verified ? palette.success : palette.neutral[400]}
               type={profile?.verified ? undefined : 'nav'}
               rightAccessory={
                 verifying ? (
-                  <ActivityIndicator size="small" color="#a8a29e" />
+                  <ActivityIndicator size="small" color={palette.neutral[400]} />
                 ) : undefined
               }
               onPress={

@@ -1,4 +1,5 @@
 import { ActivityIndicator, Pressable, Text, type ViewStyle } from 'react-native';
+import { palette } from '@/constants/colors';
 
 type Variant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
@@ -62,7 +63,7 @@ export function AsambeButton({
       className={`items-center justify-center ${v.container} ${s.container} ${fullWidth ? 'w-full' : ''} ${disabled ? 'opacity-50' : ''}`}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' || variant === 'danger' ? '#fff' : '#1c1917'} />
+        <ActivityIndicator color={variant === 'primary' || variant === 'danger' ? palette.white : palette.neutral[900]} />
       ) : (
         <Text className={`font-semibold text-center ${v.text} ${s.text}`}>
           {title}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Text, View, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { palette } from '@/constants/colors';
 import { NavIconButton } from '@/components/ui/nav-icon-button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { AsambeButton } from '@/components/ui/asambe-button';
@@ -132,7 +133,7 @@ export default function ActivityDetailScreen() {
   if (loading) {
     return (
       <View className="flex-1 bg-neutral-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#e8572a" />
+        <ActivityIndicator size="large" color={palette.accent} />
       </View>
     );
   }
@@ -201,7 +202,7 @@ export default function ActivityDetailScreen() {
             ) : null}
             {activity.recurrenceRule ? (
               <View className="bg-neutral-100 rounded-full px-3 py-1 flex-row items-center">
-                <IconSymbol name="clock" size={12} color="#78716c" />
+                <IconSymbol name="clock" size={12} color={palette.neutral[500]} />
                 <Text className="text-xs text-neutral-600 ml-1">Recurring</Text>
               </View>
             ) : null}
@@ -213,11 +214,11 @@ export default function ActivityDetailScreen() {
 
           <View className="flex-row items-center mb-4">
             <View className="flex-row items-center mr-4">
-              <IconSymbol name="mappin" size={14} color="#78716c" />
+              <IconSymbol name="mappin" size={14} color={palette.neutral[500]} />
               <Text className="text-sm text-neutral-600 ml-1">{activity.neighborhood}</Text>
             </View>
             <View className="flex-row items-center">
-              <IconSymbol name="calendar" size={14} color="#78716c" />
+              <IconSymbol name="calendar" size={14} color={palette.neutral[500]} />
               <Text className="text-sm text-neutral-600 ml-1">{activity.scheduleLabel}</Text>
             </View>
           </View>
@@ -235,13 +236,13 @@ export default function ActivityDetailScreen() {
                 Posted by {poster.name.split(' ')[0]}
               </Text>
               <View className="flex-row items-center mt-0.5">
-                <IconSymbol name="star.fill" size={13} color="#d17a47" />
+                <IconSymbol name="star.fill" size={13} color={palette.primary[500]} />
                 <Text className="text-sm text-neutral-600 ml-1">
                   {formatTrustScore(Number(poster.trustScore))} trust score
                 </Text>
                 {poster.verified ? (
                   <View className="flex-row items-center ml-2">
-                    <IconSymbol name="checkmark.circle.fill" size={13} color="#16a34a" />
+                    <IconSymbol name="checkmark.circle.fill" size={13} color={palette.success} />
                     <Text className="text-xs text-green-700 ml-0.5">Verified</Text>
                   </View>
                 ) : null}
@@ -258,7 +259,7 @@ export default function ActivityDetailScreen() {
           <View className="bg-white rounded-2xl border border-neutral-100 p-4 mb-4">
             <View className="flex-row items-center">
               <View className="w-10 h-10 bg-primary-50 rounded-xl items-center justify-center">
-                <IconSymbol name="person.2.fill" size={20} color="#c3653c" />
+                <IconSymbol name="person.2.fill" size={20} color={palette.primary[600]} />
               </View>
               <View className="ml-3">
                 <Text className="text-base font-semibold text-neutral-900">
@@ -276,7 +277,7 @@ export default function ActivityDetailScreen() {
           <View className="bg-white rounded-2xl border border-neutral-100 p-4">
             <Text className="text-sm font-semibold text-neutral-900 mb-3">Safety</Text>
             <View className="flex-row items-center mb-2.5">
-              <IconSymbol name="checkmark.circle.fill" size={16} color="#16a34a" />
+              <IconSymbol name="checkmark.circle.fill" size={16} color={palette.success} />
               <Text className="text-sm text-neutral-600 ml-2">
                 {poster.verified ? 'Verified profile' : 'Profile verification pending'}
               </Text>
@@ -304,7 +305,7 @@ export default function ActivityDetailScreen() {
                 <View>
                   <Text className="text-sm font-medium text-neutral-900">{poster.name.split(' ')[0]}</Text>
                   <View className="flex-row items-center">
-                    <IconSymbol name="star.fill" size={10} color="#d17a47" />
+                    <IconSymbol name="star.fill" size={10} color={palette.primary[500]} />
                     <Text className="text-xs text-neutral-500 ml-0.5">{formatTrustScore(Number(poster.trustScore))}</Text>
                   </View>
                 </View>

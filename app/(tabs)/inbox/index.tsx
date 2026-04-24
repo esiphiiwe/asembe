@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Text, View, ScrollView, Pressable, RefreshControl, Alert, ActivityIndicator, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { palette } from '@/constants/colors';
 import { MatchCard } from '@/components/ui/match-card';
 import { ScreenState } from '@/components/ui/screen-state';
 import { useAuth } from '@/lib/auth-context';
@@ -172,7 +173,7 @@ export default function MatchInboxScreen() {
   if (loading) {
     return (
       <View className="flex-1 bg-neutral-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#e8572a" />
+        <ActivityIndicator size="large" color={palette.accent} />
       </View>
     );
   }
@@ -237,7 +238,7 @@ export default function MatchInboxScreen() {
         className="flex-1 px-6"
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e8572a" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.accent} />
         }
       >
         {activeTab === 'pending' ? (

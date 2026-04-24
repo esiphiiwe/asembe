@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
+import { palette } from '@/constants/colors';
 import { NavIconButton } from '@/components/ui/nav-icon-button';
 import { AsambeButton } from '@/components/ui/asambe-button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -114,7 +115,7 @@ export default function TrustedContactsScreen() {
   if (loading) {
     return (
       <View className="flex-1 bg-neutral-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#e8572a" />
+        <ActivityIndicator size="large" color={palette.accent} />
       </View>
     );
   }
@@ -145,7 +146,7 @@ export default function TrustedContactsScreen() {
           {contacts.length === 0 && !showForm ? (
             <View className="items-center py-12">
               <View className="w-16 h-16 bg-neutral-100 rounded-full items-center justify-center mb-4">
-                <IconSymbol name="person.2.fill" size={28} color="#a8a29e" />
+                <IconSymbol name="person.2.fill" size={28} color={palette.neutral[400]} />
               </View>
               <Text className="text-base font-semibold text-neutral-700 mb-1">No trusted contacts yet</Text>
               <Text className="text-sm text-neutral-400 text-center leading-5">
@@ -178,7 +179,7 @@ export default function TrustedContactsScreen() {
                 className="w-8 h-8 items-center justify-center"
                 accessibilityLabel={`Remove ${contact.name}`}
               >
-                <IconSymbol name="trash" size={18} color="#dc2626" />
+                <IconSymbol name="trash" size={18} color={palette.danger} />
               </Pressable>
             </View>
           ))}
@@ -193,7 +194,7 @@ export default function TrustedContactsScreen() {
                   value={name}
                   onChangeText={setName}
                   placeholder="Full name"
-                  placeholderTextColor="#a8a29e"
+                  placeholderTextColor={palette.neutral[400]}
                   className="bg-neutral-50 rounded-xl px-4 py-3 text-base text-neutral-900 border border-neutral-200"
                 />
               </View>
@@ -204,7 +205,7 @@ export default function TrustedContactsScreen() {
                   value={phone}
                   onChangeText={setPhone}
                   placeholder="+27 83 000 0000"
-                  placeholderTextColor="#a8a29e"
+                  placeholderTextColor={palette.neutral[400]}
                   keyboardType="phone-pad"
                   className="bg-neutral-50 rounded-xl px-4 py-3 text-base text-neutral-900 border border-neutral-200"
                 />
@@ -216,7 +217,7 @@ export default function TrustedContactsScreen() {
                   value={email}
                   onChangeText={setEmail}
                   placeholder="email@example.com"
-                  placeholderTextColor="#a8a29e"
+                  placeholderTextColor={palette.neutral[400]}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   className="bg-neutral-50 rounded-xl px-4 py-3 text-base text-neutral-900 border border-neutral-200"
@@ -256,7 +257,7 @@ export default function TrustedContactsScreen() {
               onPress={() => setShowForm(true)}
               className="flex-row items-center justify-center border-2 border-dashed border-neutral-200 rounded-2xl py-4 mb-6"
             >
-              <IconSymbol name="plus" size={18} color="#78716c" />
+              <IconSymbol name="plus" size={18} color={palette.neutral[500]} />
               <Text className="text-base font-medium text-neutral-600 ml-2">
                 Add trusted contact ({contacts.length}/{MAX_CONTACTS})
               </Text>

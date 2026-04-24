@@ -1,5 +1,6 @@
 import type { ComponentProps, ReactNode } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
+import { palette } from '@/constants/colors';
 import { IconSymbol } from './icon-symbol';
 
 type IconName = ComponentProps<typeof IconSymbol>['name'];
@@ -34,7 +35,7 @@ export function SettingsRow(props: SettingsRowProps) {
     <View className="flex-row items-center py-3.5 px-4">
       {icon && (
         <View className="w-8 h-8 bg-neutral-100 rounded-lg items-center justify-center mr-3">
-          <IconSymbol name={icon} size={18} color={iconColor ?? '#44403c'} />
+          <IconSymbol name={icon} size={18} color={iconColor ?? palette.neutral[700]} />
         </View>
       )}
       <Text className={`flex-1 text-base ${textColor ?? 'text-neutral-800'}`}>{label}</Text>
@@ -43,8 +44,8 @@ export function SettingsRow(props: SettingsRowProps) {
           <Switch
             value={props.toggled}
             onValueChange={props.onToggle}
-            trackColor={{ false: '#e7e5e4', true: '#e8572a' }}
-            thumbColor="#fff"
+            trackColor={{ false: palette.neutral[200], true: palette.accent }}
+            thumbColor={palette.white}
           />
         ) : (
           <View className="flex-row items-center">
@@ -52,7 +53,7 @@ export function SettingsRow(props: SettingsRowProps) {
               <Text className="text-sm text-neutral-400 mr-2">{props.value}</Text>
             )}
             {props.onPress ? (
-              <IconSymbol name="chevron.right" size={16} color="#a8a29e" />
+              <IconSymbol name="chevron.right" size={16} color={palette.neutral[400]} />
             ) : null}
           </View>
         )

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { palette } from '@/constants/colors';
 import { NavIconButton } from '@/components/ui/nav-icon-button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/lib/auth-context';
@@ -63,7 +64,7 @@ export default function AdminCategoryScreen() {
   if (!profile?.is_admin) {
     return (
       <SafeAreaView className="flex-1 bg-neutral-50 items-center justify-center px-6" edges={['top']}>
-        <IconSymbol name="lock.fill" size={40} color="#a8a29e" />
+        <IconSymbol name="lock.fill" size={40} color={palette.neutral[400]} />
         <Text className="mt-4 text-lg font-semibold text-neutral-700 text-center">
           Admin access only
         </Text>
@@ -83,7 +84,7 @@ export default function AdminCategoryScreen() {
   if (loading) {
     return (
       <View className="flex-1 bg-neutral-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#e8572a" />
+        <ActivityIndicator size="large" color={palette.accent} />
       </View>
     );
   }
@@ -163,7 +164,7 @@ export default function AdminCategoryScreen() {
 
           {unpromoted.length === 0 ? (
             <View className="mx-4 bg-white rounded-2xl border border-neutral-100 p-6 items-center">
-              <IconSymbol name="checkmark.circle.fill" size={28} color="#16a34a" />
+              <IconSymbol name="checkmark.circle.fill" size={28} color={palette.success} />
               <Text className="mt-2 text-sm font-medium text-neutral-600 text-center">
                 No unpromoted labels yet
               </Text>
@@ -255,13 +256,13 @@ export default function AdminCategoryScreen() {
                     {cat.name}
                   </Text>
                   {togglingId === cat.id ? (
-                    <ActivityIndicator size="small" color="#e8572a" />
+                    <ActivityIndicator size="small" color={palette.accent} />
                   ) : (
                     <Switch
                       value={cat.active}
                       onValueChange={() => handleToggleActive(cat)}
-                      trackColor={{ false: '#e7e5e4', true: '#fbd5c8' }}
-                      thumbColor={cat.active ? '#e8572a' : '#a8a29e'}
+                      trackColor={{ false: palette.neutral[200], true: palette.primary[200] }}
+                      thumbColor={cat.active ? palette.accent : palette.neutral[400]}
                     />
                   )}
                 </View>
@@ -332,7 +333,7 @@ function TrackerItemCard({
             value={promoting?.icon ?? ''}
             onChangeText={onChangeIcon}
             placeholder="e.g. 🎭"
-            placeholderTextColor="#a8a29e"
+            placeholderTextColor={palette.neutral[400]}
             className="bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-2xl text-center mb-3"
             autoFocus
             maxLength={4}
@@ -351,7 +352,7 @@ function TrackerItemCard({
               disabled={promoting?.saving}
             >
               {promoting?.saving ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={palette.white} />
               ) : (
                 <Text className="text-sm font-semibold text-white">Confirm promotion</Text>
               )}

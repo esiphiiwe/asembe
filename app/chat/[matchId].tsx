@@ -14,6 +14,7 @@ import {
   Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { palette } from '@/constants/colors';
 import { MessageBubble } from '@/components/ui/message-bubble';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { NavIconButton } from '@/components/ui/nav-icon-button';
@@ -278,7 +279,7 @@ export default function ChatScreen() {
   if (loading) {
     return (
       <View className="flex-1 bg-neutral-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#e8572a" />
+        <ActivityIndicator size="large" color={palette.accent} />
       </View>
     );
   }
@@ -337,7 +338,7 @@ export default function ChatScreen() {
             accessibilityLabel="SOS emergency"
             accessibilityRole="button"
           >
-            <IconSymbol name="exclamationmark.shield.fill" size={18} color="#dc2626" />
+            <IconSymbol name="exclamationmark.shield.fill" size={18} color={palette.danger} />
           </Pressable>
           <NavIconButton
             icon="ellipsis"
@@ -363,7 +364,7 @@ export default function ChatScreen() {
             <IconSymbol
               name="clock"
               size={14}
-              color={isExpired ? '#78716c' : '#c3653c'}
+              color={isExpired ? palette.neutral[500] : palette.primary[600]}
             />
             <Text
               className={`text-xs ml-2 flex-1 ${
@@ -382,7 +383,7 @@ export default function ChatScreen() {
           <View className="mx-4 mb-1 bg-white border border-neutral-200 rounded-xl px-4 py-3">
             {match.currentUserKeepOpen ? (
               <View className="flex-row items-center gap-2">
-                <IconSymbol name="checkmark.circle.fill" size={16} color="#16a34a" />
+                <IconSymbol name="checkmark.circle.fill" size={16} color={palette.success} />
                 <Text className="text-xs text-neutral-600 flex-1">
                   You chose to keep this chat open. Waiting for {match.companionName} to do the same.
                 </Text>
@@ -401,7 +402,7 @@ export default function ChatScreen() {
                   className="bg-accent rounded-xl py-2.5 items-center"
                 >
                   {keepingOpen ? (
-                    <ActivityIndicator size="small" color="#fff" />
+                    <ActivityIndicator size="small" color={palette.white} />
                   ) : (
                     <Text className="text-sm font-semibold text-white">Keep chat open</Text>
                   )}
@@ -413,7 +414,7 @@ export default function ChatScreen() {
 
         {!isRealtimeConnected ? (
           <View className="mx-4 mt-2 mb-1 bg-neutral-100 rounded-xl px-4 py-2.5 flex-row items-center">
-            <IconSymbol name="exclamationmark.triangle" size={14} color="#78716c" />
+            <IconSymbol name="exclamationmark.triangle" size={14} color={palette.neutral[500]} />
             <Text className="text-xs text-neutral-600 ml-2 flex-1">
               Live updates are reconnecting. New messages may appear after a refresh.
             </Text>
@@ -445,7 +446,7 @@ export default function ChatScreen() {
 
         {chatBlocked ? (
           <View className="mx-4 mb-6 mt-2 bg-neutral-100 rounded-2xl px-4 py-4 items-center">
-            <IconSymbol name="lock.fill" size={20} color="#a8a29e" />
+            <IconSymbol name="lock.fill" size={20} color={palette.neutral[400]} />
             <Text className="text-sm font-medium text-neutral-600 mt-2 text-center">
               Messaging is closed
             </Text>
@@ -459,7 +460,7 @@ export default function ChatScreen() {
               value={text}
               onChangeText={setText}
               placeholder="Type a message..."
-              placeholderTextColor="#a8a29e"
+              placeholderTextColor={palette.neutral[400]}
               multiline
               editable={!chatBlocked}
               className="flex-1 bg-neutral-50 rounded-2xl px-4 py-3 text-base text-neutral-900 max-h-24 mr-2"
@@ -474,7 +475,7 @@ export default function ChatScreen() {
               <IconSymbol
                 name="paperplane.fill"
                 size={18}
-                color={text.trim() && !chatBlocked ? '#fff' : '#a8a29e'}
+                color={text.trim() && !chatBlocked ? palette.white : palette.neutral[400]}
               />
             </Pressable>
           </View>

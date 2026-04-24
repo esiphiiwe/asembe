@@ -1,28 +1,30 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * App-level light/dark theme values. Color tokens come from
+ * `constants/colors.ts` — the single source of truth for the Asambe palette.
  */
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#e8572a';
-const tintColorDark = '#f3d5c5';
+import { palette } from './colors';
+
+const tintColorLight = palette.accent;
+const tintColorDark = palette.primary[200];
 
 export const Colors = {
   light: {
-    text: '#1c1917',
-    background: '#fafaf9',
+    text: palette.neutral[900],
+    background: palette.neutral[50],
     tint: tintColorLight,
-    icon: '#78716c',
-    tabIconDefault: '#a8a29e',
+    icon: palette.neutral[500],
+    tabIconDefault: palette.neutral[400],
     tabIconSelected: tintColorLight,
   },
   dark: {
     text: '#ECEDEE',
-    background: '#1c1917',
+    background: palette.neutral[900],
     tint: tintColorDark,
-    icon: '#a8a29e',
-    tabIconDefault: '#78716c',
+    icon: palette.neutral[400],
+    tabIconDefault: palette.neutral[500],
     tabIconSelected: tintColorDark,
   },
 };

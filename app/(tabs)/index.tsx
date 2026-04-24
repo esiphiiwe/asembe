@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { palette } from '@/constants/colors';
 import { SearchBar } from '@/components/ui/search-bar';
 import { CategoryChip } from '@/components/ui/category-chip';
 import { ActivityCard } from '@/components/ui/activity-card';
@@ -126,7 +127,7 @@ export default function HomeScreen() {
   if (loading) {
     return (
       <View className="flex-1 bg-neutral-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#e8572a" />
+        <ActivityIndicator size="large" color={palette.accent} />
       </View>
     );
   }
@@ -172,14 +173,14 @@ export default function HomeScreen() {
           }
           className="w-10 h-10 bg-white border border-neutral-200 rounded-full items-center justify-center"
         >
-          <IconSymbol name="gearshape.fill" size={18} color="#44403c" />
+          <IconSymbol name="gearshape.fill" size={18} color={palette.neutral[700]} />
         </Pressable>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e8572a" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.accent} />
         }
       >
         <View className="px-6 mb-3">
@@ -202,11 +203,11 @@ export default function HomeScreen() {
               <IconSymbol
                 name="slider.horizontal.3"
                 size={18}
-                color={filterActive ? '#fff' : '#78716c'}
+                color={filterActive ? palette.white : palette.neutral[500]}
               />
               {!canAdvancedFilters ? (
                 <View className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 rounded-full items-center justify-center">
-                  <IconSymbol name="lock.fill" size={8} color="#fff" />
+                  <IconSymbol name="lock.fill" size={8} color={palette.white} />
                 </View>
               ) : null}
             </Pressable>
@@ -349,7 +350,7 @@ export default function HomeScreen() {
           <View className="flex-row items-center justify-between mb-5">
             <Text className="font-serif text-xl font-bold text-neutral-900">Filters</Text>
             <Pressable onPress={() => setShowFilterSheet(false)}>
-              <IconSymbol name="xmark.circle.fill" size={24} color="#a8a29e" />
+              <IconSymbol name="xmark.circle.fill" size={24} color={palette.neutral[400]} />
             </Pressable>
           </View>
 
